@@ -1,0 +1,48 @@
+{
+  "name": "nfl-pickem",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --conditions=react-server scripts/migrate.ts",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "check:espn": "tsx --conditions=react-server scripts/check-espn.ts",
+    "seed:teams": "tsx --conditions=react-server scripts/seed-teams.ts",
+    "sync": "tsx --conditions=react-server scripts/sync.ts",
+    "backfill": "tsx --conditions=react-server scripts/backfill-2025.ts",
+    "test": "node --import tsx --conditions=react-server --test tests/*.test.ts",
+    "invite": "tsx --conditions=react-server scripts/invite.ts",
+    "seed:demo": "tsx --conditions=react-server scripts/seed-demo.ts",
+    "db:reset": "tsx --conditions=react-server scripts/reset-db.ts",
+    "check:privacy": "node scripts/check-privacy.mjs"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.5",
+    "drizzle-orm": "^0.38.3",
+    "next": "^15.1.6",
+    "postgres": "^3.4.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.6",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "@types/web-push": "^3.6.4",
+    "drizzle-kit": "^0.30.2",
+    "playwright": "^1.62.1",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

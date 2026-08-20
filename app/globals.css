@@ -1,0 +1,521 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Swiss utility — near-monochrome ground, hairline rules, tabular data.
+   Team colours are the only saturated colour on the page.
+   ========================================================================== */
+
+:root {
+  /* Ground and ink ------------------------------------------------------- */
+  --paper: #fbfbfa; /* page ground */
+  --panel: #f4f4f2; /* toolbars, sticky heads, secondary surfaces */
+  --sunken: #eeeeec; /* wells, table zebra, disabled fills */
+  --ink: #111112; /* primary text, and the "selected" fill */
+  --ink-on: #fbfbfa; /* text on top of --ink */
+
+  --n-1: #6b6b68; /* secondary text — 5.4:1 on paper */
+  --n-2: #8a8a86; /* tertiary text, only at >=14px or bold */
+  --n-3: #c9c9c5; /* strong rule */
+  --rule: #e2e2de; /* hairline rule — the workhorse separator */
+
+  /* State ----------------------------------------------------------------- */
+  --correct: #1f7a4d;
+  --correct-soft: #e6f2ea;
+  --wrong: #b03030;
+  --wrong-soft: #f7e9e8;
+  --live: #a8650b;
+  --live-soft: #fbf0df;
+  --focus: #2f5fd0;
+
+  /* Geometry -------------------------------------------------------------- */
+  --r: 3px; /* the only radius; most things are square */
+  --hair: 1px;
+  --tap: 44px; /* minimum touch target */
+
+  --shell: 1180px;
+  --measure: 68ch;
+
+  /* Fixed steps at roughly 1.2, never fluid — product UI is read at a
+     consistent distance, and a heading that shrinks in a panel looks worse. */
+  --fs-micro: 0.6875rem; /* 11px — tracked uppercase labels */
+  --fs-meta: 0.75rem; /*    12px */
+  --fs-sm: 0.8125rem; /*    13px */
+  --fs-base: 0.875rem; /*   14px — UI default */
+  --fs-md: 1rem; /*         16px */
+  --fs-lg: 1.25rem; /*      20px */
+  --fs-xl: 1.75rem; /*      28px */
+  --fs-display: 2.5rem; /*  40px — scores, big counts */
+
+  color-scheme: light;
+}
+
+/* One step up on a desktop screen. Phones are held closer and have less room;
+   a monitor has both the distance and the space to want more. */
+@media (min-width: 1024px) {
+  :root {
+    --fs-micro: 0.75rem; /*   12px */
+    --fs-meta: 0.8125rem; /*  13px */
+    --fs-sm: 0.875rem; /*     14px */
+    --fs-base: 0.9375rem; /*  15px */
+    --fs-md: 1.0625rem; /*    17px */
+    --fs-lg: 1.375rem; /*     22px */
+    --fs-xl: 1.875rem; /*     30px */
+    --fs-display: 2.75rem; /* 44px */
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Warm graphite. Lifted well off black so the page reads as a ground
+       rather than a void, and warm so it stays the same paper-and-ink world
+       as the light theme instead of a separate cold one. */
+    --paper: #1a1917;
+    --panel: #232120;
+    --sunken: #2c2a28;
+    --ink: #ecebe8;
+    --ink-on: #1a1917;
+
+    --n-1: #a8a29a; /* 7.0:1 on the ground */
+    --n-2: #8b857a; /* 4.8:1 */
+    --n-3: #4a463f;
+    --rule: #38352f;
+
+    --correct: #4aa877;
+    --correct-soft: #1c2a20;
+    --wrong: #d96a63;
+    --wrong-soft: #2e1e1b;
+    --live: #d99b3f;
+    --live-soft: #2c2416;
+    --focus: #7aa2f7;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  /* Warm graphite. Lifted well off black so the page reads as a ground
+     rather than a void, and warm so it stays the same paper-and-ink world
+     as the light theme instead of a separate cold one. */
+  --paper: #1a1917;
+  --panel: #232120;
+  --sunken: #2c2a28;
+  --ink: #ecebe8;
+  --ink-on: #1a1917;
+
+  --n-1: #a8a29a; /* 7.0:1 on the ground */
+  --n-2: #8b857a; /* 4.8:1 */
+  --n-3: #4a463f;
+  --rule: #38352f;
+
+  --correct: #4aa877;
+  --correct-soft: #1c2a20;
+  --wrong: #d96a63;
+  --wrong-soft: #2e1e1b;
+  --live: #d99b3f;
+  --live-soft: #2c2416;
+  --focus: #7aa2f7;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-panel: var(--panel);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-on: var(--ink-on);
+  --color-n1: var(--n-1);
+  --color-n2: var(--n-2);
+  --color-n3: var(--n-3);
+  --color-rule: var(--rule);
+  --color-correct: var(--correct);
+  --color-correct-soft: var(--correct-soft);
+  --color-wrong: var(--wrong);
+  --color-wrong-soft: var(--wrong-soft);
+  --color-live: var(--live);
+  --color-live-soft: var(--live-soft);
+  --color-focus: var(--focus);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Referenced rather than literal so the desktop step-up below reaches the
+     generated utilities. `@theme inline` emits var() when the value is one. */
+  --text-micro: var(--fs-micro);
+  --text-meta: var(--fs-meta);
+  --text-sm: var(--fs-sm);
+  --text-base: var(--fs-base);
+  --text-md: var(--fs-md);
+  --text-lg: var(--fs-lg);
+  --text-xl: var(--fs-xl);
+  --text-display: var(--fs-display);
+
+  --radius-sm: var(--r);
+}
+
+/* Cascade layers matter here: unlayered CSS outranks everything Tailwind
+   emits, whatever the specificity. Base element styles therefore go in
+   `base`, and shared component classes in `components`, so a utility in the
+   markup can still override them. */
+
+@layer base {
+/* ------------------------------------------------------------------ base */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-color: var(--rule);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.45;
+  font-feature-settings: "cv05" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* iOS: keep the bottom tab bar clear of the home indicator. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+h1 {
+  font-size: var(--text-xl);
+  letter-spacing: -0.025em;
+}
+h2 {
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
+}
+h3 {
+  font-size: var(--text-md);
+}
+
+p {
+  margin: 0;
+  max-width: var(--measure);
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--n-3);
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+/* Every number in this app sits in a column with other numbers. */
+table,
+[data-numeric],
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* --------------------------------------------------- browser surfaces --
+   The parts we did not draw still belong to the design system.            */
+
+::selection {
+  background: var(--ink);
+  color: var(--ink-on);
+}
+
+:root {
+  caret-color: var(--focus);
+  accent-color: var(--ink);
+  scrollbar-color: var(--n-3) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--n-3);
+  border: 3px solid var(--paper);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--n-2);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* --------------------------------------------------------------- pieces */
+
+/* Tracked micro-label. The one typographic mannerism this system allows. */
+.label {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--n-1);
+  line-height: 1;
+}
+
+/* A section head that sits on its own rule, full-bleed within its column. */
+.rule-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: var(--hair) solid var(--ink);
+}
+
+.shell {
+  width: 100%;
+  max-width: var(--shell);
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+@media (min-width: 768px) {
+  .shell {
+    padding-inline: 32px;
+  }
+}
+
+/* Horizontal scrollers (the grid, the week rail) fade at the live edge so a
+   cut-off column reads as "more", not as a broken layout. */
+.edge-fade {
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
+}
+.edge-fade[data-at-end="true"] {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+}
+
+@layer components {
+/* --------------------------------------------------------- form controls */
+
+.input {
+  display: block;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 10px 12px;
+  background: var(--paper);
+  border: var(--hair) solid var(--n-3);
+  border-radius: var(--r);
+  font-size: var(--text-md); /* 16px — anything smaller zooms iOS Safari on focus */
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+.input::placeholder {
+  color: var(--n-2);
+}
+.input:hover:not(:disabled) {
+  border-color: var(--n-2);
+}
+.input:focus {
+  border-color: var(--ink);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.input:disabled {
+  background: var(--sunken);
+  color: var(--n-1);
+  cursor: not-allowed;
+}
+.input[aria-invalid="true"] {
+  border-color: var(--wrong);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 10px 16px;
+  border: var(--hair) solid transparent;
+  border-radius: var(--r);
+  font-size: var(--text-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    opacity 150ms ease;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--ink-on);
+  border-color: var(--ink);
+}
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.86;
+}
+.btn-secondary {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--n-3);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--sunken);
+  border-color: var(--n-2);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Team colour. Elements supply --tc-l / --tc-d inline (see lib/nfl/colors.ts);
+   these rules pick the one that reads on the current ground. */
+.team-fill {
+  background-color: var(--tc-l);
+}
+.team-text {
+  color: var(--tc-l);
+}
+.team-rule {
+  border-color: var(--tc-l);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .team-fill {
+    background-color: var(--tc-d);
+  }
+  :root:not([data-theme="light"]) .team-text {
+    color: var(--tc-d);
+  }
+  :root:not([data-theme="light"]) .team-rule {
+    border-color: var(--tc-d);
+  }
+}
+:root[data-theme="dark"] .team-fill {
+  background-color: var(--tc-d);
+}
+:root[data-theme="dark"] .team-text {
+  color: var(--tc-d);
+}
+:root[data-theme="dark"] .team-rule {
+  border-color: var(--tc-d);
+}
+
+/* ESPN ships a light and a dark rendering of each mark, and the right one
+   depends on the ground the logo actually sits on — not on the page theme.
+   A selected pick button is filled with --ink, which inverts locally, so those
+   logos need the opposite variant. `data-invert` flips the choice. */
+.logo .logo-light {
+  display: block;
+}
+.logo .logo-dark {
+  display: none;
+}
+.logo[data-invert="true"] .logo-light {
+  display: none;
+}
+.logo[data-invert="true"] .logo-dark {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo .logo-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .logo .logo-dark {
+    display: block;
+  }
+  :root:not([data-theme="light"]) .logo[data-invert="true"] .logo-light {
+    display: block;
+  }
+  :root:not([data-theme="light"]) .logo[data-invert="true"] .logo-dark {
+    display: none;
+  }
+}
+
+:root[data-theme="dark"] .logo .logo-light {
+  display: none;
+}
+:root[data-theme="dark"] .logo .logo-dark {
+  display: block;
+}
+:root[data-theme="dark"] .logo[data-invert="true"] .logo-light {
+  display: block;
+}
+:root[data-theme="dark"] .logo[data-invert="true"] .logo-dark {
+  display: none;
+}
+
+/* Live pulse — the only ambient motion in the app, and it reports state. */
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Skeletons, not spinners, for content that is arriving. */
+@keyframes shimmer {
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--sunken) 25%, var(--panel) 50%, var(--sunken) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+}

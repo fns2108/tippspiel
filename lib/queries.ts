@@ -215,6 +215,11 @@ export type Scoreboard = {
  * and it means an admin correcting a result cannot leave a stale total behind.
  */
 export async function getScoreboard(season: number, now: Date = new Date()): Promise<Scoreboard> {
+  // ISO string with an explicit cast, never a Date: a timestamp interpolated
+  // into `sql` carries no column, so drizzle's mapper never runs and the raw
+  // object reaches the driver. See the note in lib/rate-limit.ts.
+  const nowSql = now.toISOString();
+
   const members = await db
     .select({ id: users.id, username: users.username })
     .from(users)
@@ -226,7 +231,7 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
       week: games.week,
       total: sql<number>`count(*)::int`,
       final: sql<number>`count(*) filter (where ${games.status} = 'post')::int`,
-      started: sql<number>`count(*) filter (where ${games.kickoff} <= ${now})::int`,
+      started: sql<number>`count(*) filter (where ${games.kickoff} <= ${nowSql}::timestamptz)::int`,
     })
     .from(games)
     .where(eq(games.season, season))

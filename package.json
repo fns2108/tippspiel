@@ -21,7 +21,8 @@
     "invite": "tsx --conditions=react-server scripts/invite.ts",
     "seed:demo": "tsx --conditions=react-server scripts/seed-demo.ts",
     "db:reset": "tsx --conditions=react-server scripts/reset-db.ts",
-    "check:privacy": "node scripts/check-privacy.mjs"
+    "check:privacy": "node scripts/check-privacy.mjs",
+    "status": "tsx --conditions=react-server scripts/status.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.5",
@@ -41,8 +42,12 @@
     "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.30.2",
     "playwright": "^1.62.1",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

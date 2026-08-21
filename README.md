@@ -55,37 +55,79 @@ npm run seed:demo
 
 ## Deploy it
 
-Free on Vercel's Hobby plan with a Neon Postgres database.
+Free on Vercel's Hobby plan with a Neon Postgres database. Budget twenty minutes.
 
-**1. Database.** Create a project at [neon.tech](https://neon.tech) and copy the **pooled**
-connection string (its host contains `-pooler`).
-
-**2. Push to GitHub**, then import the repo at [vercel.com/new](https://vercel.com/new).
-
-**3. Environment variables** in the Vercel project:
-
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | the pooled Neon string |
-| `CRON_SECRET` | `openssl rand -base64 32` |
-| `ADMIN_USERNAMES` | **your name** — see below |
-| `DISPLAY_TZ` | `Europe/Berlin` (server-render fallback; the browser still shows local time) |
-| `NFL_SEASON` | leave unset — it derives from the date |
-
-**4. Migrate and seed** against production, once:
+### 1. Put the code on GitHub
 
 ```bash
-DATABASE_URL="<the pooled string>" npm run db:migrate
-DATABASE_URL="<the pooled string>" npm run seed:teams
-DATABASE_URL="<the pooled string>" npm run sync
-DATABASE_URL="<the pooled string>" npm run invite -- "for the group" 10
+git init
+git add .
+git commit -m "NFL pick'em pool"
+gh repo create nfl-pickem --private --source=. --push
 ```
 
-That last command prints a key good for ten accounts and the link to send round.
+Without the `gh` CLI, create an empty private repo on github.com and follow the two
+commands it shows you. `.env.local` and `.pglite/` are gitignored, so no secrets and no
+local database go up. The 64 team logos in `public/teams/` **are** committed on purpose —
+they need to exist at build time.
 
-`vercel.json` already registers the daily cron. Nothing else to configure.
+### 2. Create the database
 
-### Reminders (optional)
+At [neon.tech](https://neon.tech), sign up and create a project. Region: pick Frankfurt
+(`eu-central-1`) — it is closest, and Vercel will run the app in the same region.
+
+From the dashboard, copy the connection string. **Take the pooled one** — its host contains
+`-pooler`, like:
+
+```
+postgresql://user:pass@ep-xyz-123-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require
+```
+
+The non-pooled string works but opens a fresh connection per request and will exhaust the
+free tier's connection limit on a Sunday.
+
+### 3. Set up the database schema and data
+
+Run these from your laptop, against the Neon URL. This is the only time you touch
+production directly.
+
+```bash
+export DATABASE_URL="postgresql://...-pooler...neon.tech/neondb?sslmode=require"
+
+npm run db:migrate    # creates the tables
+npm run seed:teams    # 32 teams
+npm run sync          # the whole 2026 schedule, plus spreads
+npm run invite -- "the group" 10
+```
+
+Write down the invite key it prints. Then `unset DATABASE_URL` so your local work goes back
+to the PGlite database.
+
+### 4. Deploy
+
+Import the repo at [vercel.com/new](https://vercel.com/new). Vercel detects Next.js — do not
+change the build settings. Before clicking Deploy, add the environment variables:
+
+| Variable | Value | Notes |
+|---|---|---|
+| `DATABASE_URL` | the pooled Neon string | required |
+| `ADMIN_USERNAMES` | `Stolten` | the complete admin list; see below |
+| `CRON_SECRET` | `openssl rand -base64 32` | required, or the cron endpoint stays shut |
+| `DISPLAY_TZ` | `Europe/Berlin` | server-render fallback only |
+
+Leave `NFL_SEASON` unset — it derives from the date. Apply all four to Production, Preview
+and Development.
+
+Deploy. It takes about a minute.
+
+### 5. Register and invite
+
+Open `https://your-app.vercel.app/register?key=YOUR-KEY`, create your account with the exact
+name you put in `ADMIN_USERNAMES`, and you will have the shield icon in the header.
+
+Then send everyone else the link from `/admin`, which has a copy button next to each key.
+
+### Reminders (optional, do it later)
 
 ```bash
 npx web-push generate-vapid-keys
@@ -98,6 +140,15 @@ open-games banner.
 
 On iPhone, notifications only work if the site is added to the Home Screen first. The app
 tells people this when it detects it.
+
+### Updating later
+
+```bash
+git push
+```
+
+Vercel rebuilds on every push to the default branch. You only re-run the database commands
+from step 3 if a change adds a migration.
 
 ---
 

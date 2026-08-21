@@ -273,7 +273,7 @@ table,
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
-  border-radius: 1px;
+  border-radius: var(--r);
 }
 :focus:not(:focus-visible) {
   outline: none;
@@ -314,7 +314,9 @@ table,
 }
 
 /* Horizontal scrollers (the grid, the week rail) fade at the live edge so a
-   cut-off column reads as "more", not as a broken layout. */
+   cut-off column reads as "more", not as a broken layout. The #000 below is a
+   mask stencil, not a palette colour — only the alpha channel is read, so
+   opaque-versus-transparent is all it means. */
 .edge-fade {
   -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 28px), transparent 100%);
@@ -505,7 +507,7 @@ table,
   background: linear-gradient(90deg, var(--sunken) 25%, var(--panel) 50%, var(--sunken) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 2px;
+  border-radius: var(--r);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -26,8 +26,6 @@ export async function consumeAttempt(
    * driver replaces postgres.js's timestamp serializers with `(val) => val`,
    * expecting to have done the conversion itself. The Date then lands in
    * Buffer.byteLength, which throws ERR_INVALID_ARG_TYPE on the first login.
-   * PGlite installs no such override and serializes the Date itself, so this
-   * fails only against a real Postgres.
    */
   const nowSql = now.toISOString();
   const windowStartSql = windowStart.toISOString();
@@ -73,7 +71,7 @@ export async function clientIp(): Promise<string> {
 
 export function describeRetry(ms: number): string {
   const minutes = Math.ceil(ms / 60_000);
-  if (minutes <= 1) return "in about a minute";
-  if (minutes < 60) return `in about ${minutes} minutes`;
-  return `in about ${Math.ceil(minutes / 60)} hours`;
+  if (minutes <= 1) return "in etwa einer Minute";
+  if (minutes < 60) return `in etwa ${minutes} Minuten`;
+  return `in etwa ${Math.ceil(minutes / 60)} Stunden`;
 }

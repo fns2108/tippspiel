@@ -66,10 +66,10 @@ function TeamSide({
   const won = final && game.winnerTeamId === team.id;
   const lost = final && game.winnerTeamId !== null && game.winnerTeamId !== team.id;
 
-  const outcome = final ? (won ? " — won" : game.isTie ? " — tied" : " — lost") : "";
+  const outcome = final ? (won ? " — gewonnen" : game.isTie ? " — unentschieden" : " — verloren") : "";
   const label = game.locked
-    ? `${team.displayName}${isHome ? ", at home" : ", away"}${outcome}${selected ? " — your pick" : ""}`
-    : `${selected ? "Your pick: " : "Pick "}${team.displayName}${isHome ? ", at home" : ", away"}`;
+    ? `${team.displayName}${isHome ? ", zu Hause" : ", auswärts"}${outcome}${selected ? " — dein Pick" : ""}`
+    : `${selected ? "Dein Pick: " : "Tippe "}${team.displayName}${isHome ? ", zu Hause" : ", auswärts"}`;
 
   return (
     <button
@@ -108,7 +108,7 @@ function TeamSide({
           {sideSpread !== null && !showScore && (
             <span
               className={`text-meta tabular-nums ${selected ? "text-ink-on/65" : "text-n2"}`}
-              title={sideSpread < 0 ? "Favoured by the bookmakers" : "Underdog"}
+              title={sideSpread < 0 ? "Von den Buchmachern favorisiert" : "Außenseiter"}
             >
               {formatSpread(sideSpread)}
             </span>
@@ -191,7 +191,7 @@ function Consensus({ game, pickedBy }: { game: GameCard; pickedBy: PickedBy[] })
             }`}
           >
             {members.length === 0 ? (
-              <span className="text-n3">nobody</span>
+              <span className="text-n3">niemand</span>
             ) : (
               <>
                 {final && (
@@ -258,17 +258,17 @@ export function PickRow({
             </span>
           )}
           {game.status === "post" && (
-            <span className="label text-n2">{game.statusDetail ?? "Final"}</span>
+            <span className="label text-n2">{game.statusDetail ?? "Endstand"}</span>
           )}
           {game.locked && game.status === "pre" && (
             <span className="inline-flex items-center gap-1 text-micro font-semibold uppercase tracking-[0.08em] text-n2">
-              <LockIcon size={11} /> Locked
+              <LockIcon size={11} /> Gesperrt
             </span>
           )}
         </div>
 
         <div className="flex items-baseline gap-2.5 text-meta text-n2">
-          {game.neutralSite && <span>Neutral site</span>}
+          {game.neutralSite && <span>Neutraler Ort</span>}
         </div>
       </div>
 
@@ -285,7 +285,7 @@ export function PickRow({
         <span
           aria-hidden
           className="self-center px-0.5 text-meta font-medium text-n3"
-          title={game.neutralSite ? "Neutral site" : "at"}
+          title={game.neutralSite ? "Neutraler Ort" : "bei"}
         >
           {game.neutralSite ? "vs" : "@"}
         </span>

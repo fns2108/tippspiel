@@ -26,22 +26,22 @@ export default async function StandingsPage() {
       <header className="rule-head">
         <h1>Standings</h1>
         <p className="label" data-numeric>
-          {season} season
+          Saison {season}
         </p>
       </header>
 
       {!hasResults ? (
         <div className="border border-rule bg-panel px-4 py-10 text-center">
-          <h2 className="text-md">Nothing settled yet</h2>
+          <h2 className="text-md">Noch nichts entschieden</h2>
           <p className="mx-auto mt-1.5 text-sm text-n1">
-            The table fills in as games finish. Weekly winners are decided once every game
-            in that week is final.
+            Die Tabelle füllt sich, sobald Spiele beendet sind. Wochensieger stehen fest, wenn
+            alle Spiele der Woche beendet sind.
           </p>
           <Link
             href="/picks"
             className="btn btn-secondary mt-4 inline-flex"
           >
-            Make your picks
+            Picks abgeben
           </Link>
         </div>
       ) : (
@@ -50,14 +50,14 @@ export default async function StandingsPage() {
           <WeeklyLedger board={board} meId={user.id} season={season} />
           <TeamConsensus
             rows={consensus}
-            heading="Who the group backs"
-            meta="All picks this season"
+            heading="Wen die Gruppe tippt"
+            meta="Alle Picks diese Saison"
           />
         </>
       )}
 
       {playedWeeks.length > 0 && !hasResults && (
-        <p className="text-sm text-n1">Games are under way — check back once they finish.</p>
+        <p className="text-sm text-n1">Es wird gerade gespielt — schau wieder rein, wenn die Spiele durch sind.</p>
       )}
     </div>
   );
@@ -71,8 +71,8 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
   return (
     <section aria-labelledby="season-table" className="space-y-3">
       <div className="rule-head">
-        <h2 id="season-table">Season</h2>
-        <p className="label">Most correct picks wins</p>
+        <h2 id="season-table">Saison</h2>
+        <p className="label">Die meisten richtigen Picks gewinnen</p>
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
@@ -83,24 +83,24 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
                 <span className="label">#</span>
               </th>
               <th scope="col" className="py-2 pl-3 text-left font-normal">
-                <span className="label">Member</span>
+                <span className="label">Mitglied</span>
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
-                <span className="label">Correct</span>
+                <span className="label">Richtig</span>
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
-                <span className="label">Total picked</span>
+                <span className="label">Getippt</span>
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
-                <span className="label">Pct</span>
+                <span className="label">Quote</span>
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
-                <span className="label" title="Weeks won or shared">
-                  Wins
+                <span className="label" title="Gewonnene oder geteilte Wochen">
+                  Siege
                 </span>
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
-                <span className="label">Best</span>
+                <span className="label">Beste</span>
               </th>
             </tr>
           </thead>
@@ -125,7 +125,7 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
                     >
                       {s.username}
                     </Link>
-                    {me && <span className="label ml-2">you</span>}
+                    {me && <span className="label ml-2">du</span>}
                   </td>
                   <td data-numeric className="py-2 pl-3 text-right font-mono font-medium">
                     {s.correct}
@@ -156,8 +156,8 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
         </table>
       </div>
       <p className="text-meta text-n2">
-        * includes weeks shared with someone else. A tied week counts as a win for everyone
-        on the top score.
+        * enthält Wochen, die mit jemandem geteilt wurden. Bei Gleichstand zählt die Woche für
+        alle mit der Höchstpunktzahl als Sieg.
       </p>
     </section>
   );
@@ -180,8 +180,8 @@ function WeeklyLedger({
   return (
     <section aria-labelledby="weekly" className="space-y-3">
       <div className="rule-head">
-        <h2 id="weekly">By week</h2>
-        <p className="label">Ties are shared</p>
+        <h2 id="weekly">Nach Woche</h2>
+        <p className="label">Gleichstand wird geteilt</p>
       </div>
 
       <ul className="border-t border-rule">
@@ -209,7 +209,7 @@ function WeeklyLedger({
                   winners.length > 0 ? (
                     <>
                       <span className="text-n1">
-                        {winners.length > 1 ? "Shared by " : "Won by "}
+                        {winners.length > 1 ? "Geteilt von " : "Gewonnen von "}
                       </span>
                       <span className="font-medium">{winners.join(", ")}</span>
                       <span data-numeric className="ml-2 font-mono text-meta text-n2">
@@ -217,20 +217,20 @@ function WeeklyLedger({
                       </span>
                     </>
                   ) : (
-                    <span className="text-n2">Nobody scored</span>
+                    <span className="text-n2">Niemand hat gepunktet</span>
                   )
                 ) : (
                   <span className="text-n1">
-                    In progress
+                    Läuft
                     <span data-numeric className="ml-2 font-mono text-meta text-n2">
-                      {w.finalGames}/{w.totalGames} final
+                      {w.finalGames}/{w.totalGames} beendet
                     </span>
                   </span>
                 )}
               </span>
 
               <span data-numeric className="font-mono text-meta text-n1">
-                <span className="label mr-1.5">you</span>
+                <span className="label mr-1.5">du</span>
                 {mine?.correct ?? 0}
               </span>
             </li>

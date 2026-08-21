@@ -10,8 +10,16 @@ web (mobile-first; installable as a PWA so iOS can receive push reminders)
 
 delegated — Next.js 15 App Router + TypeScript, Tailwind v4 (CSS-first `@theme`),
 Drizzle ORM on Postgres (Neon free tier), hand-rolled scrypt session auth, deployed on
-Vercel Hobby. Chosen for zero running cost and push-to-deploy; the owner explicitly left
-framework and backend to be decided, asking only that it be cheap and easy to deploy.
+Vercel Hobby in `fra1`, beside the database. Chosen for zero running cost and
+push-to-deploy; the owner explicitly left framework and backend to be decided, asking only
+that it be cheap and easy to deploy.
+
+**One database, no local mode.** There is no embedded or local development database. Every
+environment — the deployment, a migration, a script on the owner's laptop — connects to the
+same Neon Postgres, so the SQL that runs in development is the SQL that runs in production.
+The owner asked for this explicitly after an embedded local database corrupted itself twice.
+The cost is accepted knowingly: anything run on a laptop touches live data, so there are no
+destructive convenience scripts (no reset, no demo seeding) for one to be run by mistake.
 
 ## Users
 
@@ -98,6 +106,8 @@ Constraints:
 - Vercel's free plan limits scheduled jobs to once per day, so live score freshness is
   driven by on-demand revalidation on page load rather than a cron.
 - Correctness (locking, reveal, scoring) must never depend on a background job having run.
+- No local database and no local-only code path. `DATABASE_URL` is required everywhere and
+  the app refuses to start without it.
 
 Terminology: *week* means an NFL week including playoff rounds; *pick* is one member's
 chosen team for one game; *lock* is the moment a game stops accepting picks and starts
@@ -107,8 +117,12 @@ showing everyone's; *the grid* is the all-members-by-all-games view of a week.
 
 - Working name: NFL pick'em pool (project folder "Tippspiel Website"). No logo or existing
   brand assets exist.
-- Interface language is English; NFL terminology is English and the group reads it. Dates
-  and times always render in the viewer's local timezone.
+- Interface language is German, addressing members informally (*du*). Two English words
+  are pinned by the owner and must not be translated: **Picks** and **Standings**, including
+  where they appear inside German sentences. NFL proper nouns stay English too — Wild Card,
+  Divisional, Conference, Super Bowl, team names — because the group reads them that way.
+  Dates, times and number formats render German (`de-DE`), always in the viewer's local
+  timezone.
 - Binding aesthetic constraint from the owner: **it must not look "vibecoded."** He chose a
   Swiss-utility direction — strict grid, tight sans typography, generous whitespace,
   near-monochrome with team colors carrying all the color.

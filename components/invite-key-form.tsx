@@ -10,7 +10,7 @@ function Submit() {
   return (
     <button type="submit" disabled={pending} className="btn btn-primary">
       <PlusIcon />
-      {pending ? "Creating…" : "Create key"}
+      {pending ? "Wird erstellt…" : "Key erstellen"}
     </button>
   );
 }
@@ -26,19 +26,19 @@ export function InviteKeyForm() {
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
         <div>
           <label htmlFor="k-label" className="label mb-1.5 block">
-            Label
+            Bezeichnung
           </label>
           <input
             id="k-label"
             name="label"
             className="input"
-            placeholder="for Jonas"
+            placeholder="für Jonas"
             autoComplete="off"
           />
         </div>
         <div>
           <label htmlFor="k-uses" className="label mb-1.5 block">
-            Uses
+            Nutzungen
           </label>
           <input
             id="k-uses"
@@ -53,13 +53,13 @@ export function InviteKeyForm() {
         </div>
         <div>
           <label htmlFor="k-expiry" className="label mb-1.5 block">
-            Expires
+            Läuft ab
           </label>
           <select id="k-expiry" name="expiresInDays" defaultValue="0" className="input w-32">
-            <option value="0">Never</option>
-            <option value="1">In 1 day</option>
-            <option value="7">In 7 days</option>
-            <option value="30">In 30 days</option>
+            <option value="0">Nie</option>
+            <option value="1">In 1 Tag</option>
+            <option value="7">In 7 Tagen</option>
+            <option value="30">In 30 Tagen</option>
           </select>
         </div>
       </div>
@@ -87,8 +87,8 @@ export function CopyKey({ code, origin }: { code: string; origin: string }) {
   return (
     <button
       type="button"
-      title="Copy invite link"
-      aria-label={`Copy invite link for ${code}`}
+      title="Einladungslink kopieren"
+      aria-label={`Einladungslink für ${code} kopieren`}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(`${origin}/register?key=${code}`);

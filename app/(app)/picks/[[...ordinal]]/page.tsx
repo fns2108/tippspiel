@@ -23,7 +23,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { ordinal } = await params;
   const n = ordinal?.[0];
-  return { title: n ? `Week ${n} picks` : "Picks" };
+  return { title: n ? `Woche ${n} Picks` : "Picks" };
 }
 
 export default async function PicksPage({ params }: { params: Promise<Params> }) {
@@ -55,7 +55,7 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
           <LiveRefresh active={view.liveCount > 0} />
         </div>
         <p className="label" data-numeric>
-          {myPickedCount}/{view.totalGames} picked
+          {myPickedCount}/{view.totalGames} getippt
         </p>
       </header>
 
@@ -74,8 +74,8 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
               <span aria-hidden className="text-correct">
                 <ClockIcon />
               </span>
-              All {view.totalGames} games picked. You can still change anything that has not
-              kicked off.
+              Alle {view.totalGames} Spiele getippt. Du kannst alles ändern, was noch nicht
+              angepfiffen ist.
             </p>
           ) : null}
 
@@ -88,7 +88,7 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
                 >
                   {group.label}
                   <span className="ml-2 font-normal tracking-normal normal-case text-n2">
-                    {group.games.length} {group.games.length === 1 ? "game" : "games"}
+                    {group.games.length} {group.games.length === 1 ? "Spiel" : "Spiele"}
                   </span>
                 </h2>
                 <ul>
@@ -106,8 +106,8 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
           </div>
 
           <p className="pt-2 text-meta text-n2">
-            Everyone&apos;s picks for a game appear here the moment it kicks off. Until then
-            only you can see yours.
+            Die Picks aller erscheinen hier, sobald das Spiel angepfiffen ist. Bis dahin siehst
+            nur du deine eigenen.
           </p>
         </div>
       )}
@@ -122,10 +122,10 @@ function OpenPicksBanner({ count, nextKickoff }: { count: number; nextKickoff: D
         <AlertIcon />
       </span>
       <p className="text-sm font-medium">
-        {count} {count === 1 ? "game" : "games"} still open
+        {count} {count === 1 ? "Spiel" : "Spiele"} noch offen
       </p>
       <p className="text-sm text-n1">
-        First lock{" "}
+        Erste Sperre{" "}
         <LocalTime
           iso={nextKickoff.toISOString()}
           fallback={formatDayAndTime(nextKickoff, SERVER_TZ)}
@@ -141,16 +141,16 @@ function OpenPicksBanner({ count, nextKickoff }: { count: number; nextKickoff: D
 function EmptyWeek({ label, season }: { label: string; season: number }) {
   return (
     <div className="border border-rule bg-panel px-4 py-8 text-center">
-      <h2 className="text-md">{label} is not scheduled yet</h2>
+      <h2 className="text-md">{label} ist noch nicht angesetzt</h2>
       <p className="mx-auto mt-1.5 text-sm text-n1">
-        The {season} schedule for this week has not been published. It will appear here
-        automatically once it is.
+        Der Spielplan {season} für diese Woche ist noch nicht veröffentlicht. Er erscheint hier
+        automatisch, sobald es so weit ist.
       </p>
       <Link
         href="/picks"
         className="mt-4 inline-block border border-rule px-3 py-1.5 text-sm no-underline hover:bg-sunken"
       >
-        Back to the current week
+        Zurück zur aktuellen Woche
       </Link>
     </div>
   );

@@ -42,7 +42,7 @@ export function WeekRail({
   }, [current]);
 
   return (
-    <nav aria-label="Week" className="border-b border-rule">
+    <nav aria-label="Woche" className="border-b border-rule">
       <div
         ref={scroller}
         className="edge-fade -mx-4 flex gap-px overflow-x-auto px-4 pb-2 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -68,7 +68,7 @@ export function WeekRail({
             return (
               <span
                 key={w.ordinal}
-                title={`${w.label} — not scheduled yet`}
+                title={`${w.label} — noch nicht angesetzt`}
                 className={`${shared} cursor-default text-n3`}
               >
                 {content}

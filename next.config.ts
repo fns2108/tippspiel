@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
   // Team logos are downloaded into /public/teams at seed time, so there is no
   // third-party image host to allowlist. See scripts/seed-teams.ts.
 
-  // These load native/WASM assets by filesystem path and must not be bundled.
-  serverExternalPackages: ["postgres", "web-push", "@electric-sql/pglite"],
+  // These load native assets by filesystem path and must not be bundled.
+  serverExternalPackages: ["postgres", "web-push"],
 };
 
 export default nextConfig;

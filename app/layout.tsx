@@ -17,7 +17,7 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Pick'em", template: "%s · Pick'em" },
-  description: "A private NFL pick'em pool.",
+  description: "Eine private NFL-Tipprunde.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Pick'em", statusBarStyle: "default" },
   robots: { index: false, follow: false },
@@ -43,7 +43,7 @@ try {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="de" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>

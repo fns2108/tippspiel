@@ -19,13 +19,10 @@
     "backfill": "tsx --conditions=react-server scripts/backfill-2025.ts",
     "test": "node --import tsx --conditions=react-server --test tests/*.test.ts",
     "invite": "tsx --conditions=react-server scripts/invite.ts",
-    "seed:demo": "tsx --conditions=react-server scripts/seed-demo.ts",
-    "db:reset": "tsx --conditions=react-server scripts/reset-db.ts",
     "check:privacy": "node scripts/check-privacy.mjs",
     "status": "tsx --conditions=react-server scripts/status.ts"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.5",
     "drizzle-orm": "^0.38.3",
     "next": "^15.1.6",
     "postgres": "^3.4.5",

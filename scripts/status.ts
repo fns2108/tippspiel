@@ -4,15 +4,13 @@
  *
  *   DATABASE_URL="postgres://...-pooler...neon.tech/neondb?sslmode=require" npm run status
  *
- * With no DATABASE_URL it reports on the local PGlite database instead.
  */
 import { desc, eq, sql } from "drizzle-orm";
-import { db, usingPglite } from "../lib/db/index.ts";
+import { db } from "../lib/db/index.ts";
 import { games, inviteKeys, picks, syncState, teams, users } from "../lib/db/schema.ts";
 import { currentSeason } from "../lib/nfl/season.ts";
 
 const season = currentSeason();
-console.log(`\ndatabase: ${usingPglite ? "local PGlite (.pglite/)" : "remote Postgres"}`);
 console.log(`season:   ${season}\n`);
 
 const [{ c: userCount }] = await db.select({ c: sql<number>`count(*)::int` }).from(users);

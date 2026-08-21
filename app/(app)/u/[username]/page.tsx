@@ -61,55 +61,55 @@ export default async function ProfilePage({
       <header className="rule-head">
         <div className="flex items-baseline gap-3">
           <h1>{subject.username}</h1>
-          {isMe && <span className="label">you</span>}
+          {isMe && <span className="label">du</span>}
         </div>
         {record && record.decided > 0 && (
           <p className="label" data-numeric>
-            #{rank + 1} of {board.season.length}
+            #{rank + 1} von {board.season.length}
           </p>
         )}
       </header>
 
       {!record || record.decided === 0 ? (
         <p className="border border-rule bg-panel px-4 py-8 text-center text-sm text-n1">
-          No settled picks yet this season.
+          Diese Saison ist noch nichts entschieden.
         </p>
       ) : (
         <>
           <dl className="grid grid-cols-2 gap-px border border-rule bg-rule sm:grid-cols-4">
-            <Stat label="Correct" value={String(record.correct)} sub={`of ${record.decided}`} />
-            <Stat label="Accuracy" value={pct(record.correct, record.decided)} />
+            <Stat label="Richtig" value={String(record.correct)} sub={`von ${record.decided}`} />
+            <Stat label="Quote" value={pct(record.correct, record.decided)} />
             <Stat
-              label="Weeks won"
+              label="Wochen gewonnen"
               value={String(record.weeklyWins)}
-              sub={record.sharedWins > 0 ? `${record.sharedWins} shared` : undefined}
+              sub={record.sharedWins > 0 ? `${record.sharedWins} geteilt` : undefined}
             />
             <Stat
-              label="Best week"
+              label="Beste Woche"
               value={record.bestWeek ? String(record.bestWeek.correct) : "—"}
-              sub={record.bestWeek ? `Week ${record.bestWeek.ordinal}` : undefined}
+              sub={record.bestWeek ? `Woche ${record.bestWeek.ordinal}` : undefined}
             />
           </dl>
 
           {!isMe && h2h.disagreements > 0 && (
             <section aria-labelledby="h2h" className="space-y-3">
               <div className="rule-head">
-                <h2 id="h2h">You against {subject.username}</h2>
-                <p className="label">Games you picked differently</p>
+                <h2 id="h2h">Du gegen {subject.username}</h2>
+                <p className="label">Spiele, die ihr unterschiedlich getippt habt</p>
               </div>
               <p className="text-sm">
-                Of <strong className="font-mono tabular-nums">{h2h.disagreements}</strong> games
-                you disagreed on, you were right{" "}
-                <strong className="font-mono tabular-nums">{h2h.aWon}</strong> and{" "}
-                {subject.username} was right{" "}
-                <strong className="font-mono tabular-nums">{h2h.bWon}</strong>.
+                Von <strong className="font-mono tabular-nums">{h2h.disagreements}</strong> Spielen,
+                die ihr unterschiedlich getippt habt, lagst du{" "}
+                <strong className="font-mono tabular-nums">{h2h.aWon}</strong>-mal richtig und{" "}
+                {subject.username}{" "}
+                <strong className="font-mono tabular-nums">{h2h.bWon}</strong>-mal.
               </p>
             </section>
           )}
 
           <section aria-labelledby="by-week" className="space-y-3">
             <div className="rule-head">
-              <h2 id="by-week">Week by week</h2>
+              <h2 id="by-week">Woche für Woche</h2>
             </div>
             <ul className="border-t border-rule">
               {weeks.map((w) => {
@@ -150,7 +150,7 @@ export default async function ProfilePage({
                     <span className="w-16 shrink-0 text-right">
                       {won && (
                         <span className="label">
-                          {w.winnerIds.length > 1 ? "shared" : "won"}
+                          {w.winnerIds.length > 1 ? "geteilt" : "gewonnen"}
                         </span>
                       )}
                     </span>
@@ -162,9 +162,9 @@ export default async function ProfilePage({
 
           <TeamConsensus
             rows={byTeam}
-            heading={isMe ? "Who you back" : `Who ${subject.username} backs`}
-            meta={`${season} season`}
-            subject={isMe ? "you" : subject.username}
+            heading={isMe ? "Wen du tippst" : `Wen ${subject.username} tippt`}
+            meta={`Saison ${season}`}
+            subject={isMe ? "du" : subject.username}
           />
         </>
       )}
@@ -172,13 +172,13 @@ export default async function ProfilePage({
       {isMe && (
         <section aria-labelledby="account" className="space-y-3">
           <div className="rule-head">
-            <h2 id="account">Account</h2>
+            <h2 id="account">Konto</h2>
           </div>
           <PushToggle />
           <form action={logoutAction}>
             <button type="submit" className="btn btn-secondary">
               <LogoutIcon />
-              Sign out
+              Abmelden
             </button>
           </form>
         </section>

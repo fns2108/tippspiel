@@ -65,7 +65,7 @@ export function LiveRefresh({
       className="inline-flex items-center gap-1.5 text-micro font-semibold uppercase tracking-[0.08em] text-live"
     >
       <span aria-hidden className="live-dot h-1.5 w-1.5 rounded-full bg-live" />
-      {stale ? "Updating" : "Live"}
+      {stale ? "Aktualisiert" : "Live"}
     </span>
   );
 }

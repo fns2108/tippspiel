@@ -22,9 +22,9 @@ export type ConsensusRow = {
 type SortKey = "picked" | "best" | "worst";
 
 const SORTS: { key: SortKey; label: string }[] = [
-  { key: "picked", label: "Most picked" },
-  { key: "best", label: "Best %" },
-  { key: "worst", label: "Worst %" },
+  { key: "picked", label: "Am häufigsten" },
+  { key: "best", label: "Beste %" },
+  { key: "worst", label: "Schlechteste %" },
 ];
 
 const rate = (r: ConsensusRow) => (r.decided === 0 ? 0 : r.timesCorrect / r.decided);
@@ -41,13 +41,13 @@ export function TeamConsensus({
   rows,
   heading,
   meta,
-  subject = "the group",
+  subject = "die Gruppe",
   showCallouts = true,
 }: {
   rows: ConsensusRow[];
   heading: string;
   meta?: string;
-  /** Used in the callout copy: "the group", "Finn", "you". */
+  /** Used in the callout copy: "die Gruppe", "Finn", "du". */
   subject?: string;
   showCallouts?: boolean;
 }) {
@@ -95,8 +95,8 @@ export function TeamConsensus({
         {meta && <p className="label">{meta}</p>}
       </div>
 
-      <div className="flex items-center gap-1" role="group" aria-label="Sort teams">
-        <span className="label mr-1">Sort</span>
+      <div className="flex items-center gap-1" role="group" aria-label="Teams sortieren">
+        <span className="label mr-1">Sortieren</span>
         {SORTS.map((s) => {
           const active = s.key === sort;
           return (
@@ -120,20 +120,20 @@ export function TeamConsensus({
       {callouts && (
         <dl className="grid gap-3 sm:grid-cols-2">
           <div className="border border-rule px-3 py-2.5">
-            <dt className="label">Most reliable</dt>
+            <dt className="label">Am zuverlässigsten</dt>
             <dd className="mt-1 flex flex-wrap items-baseline gap-x-2">
               <span className="font-medium">{callouts.best.team.displayName}</span>
               <span data-numeric className="font-mono text-meta text-n1">
-                {callouts.best.timesCorrect}/{callouts.best.decided} right
+                {callouts.best.timesCorrect}/{callouts.best.decided} richtig
               </span>
             </dd>
           </div>
           <div className="border border-rule px-3 py-2.5">
-            <dt className="label">Most burned by</dt>
+            <dt className="label">Am meisten enttäuscht</dt>
             <dd className="mt-1 flex flex-wrap items-baseline gap-x-2">
               <span className="font-medium">{callouts.worst.team.displayName}</span>
               <span data-numeric className="font-mono text-meta text-n1">
-                {callouts.worst.timesCorrect}/{callouts.worst.decided} right
+                {callouts.worst.timesCorrect}/{callouts.worst.decided} richtig
               </span>
             </dd>
           </div>
@@ -168,14 +168,14 @@ export function TeamConsensus({
             <span
               data-numeric
               className="w-11 shrink-0 text-right font-mono text-meta"
-              title="Share of those picks that were correct"
+              title="Anteil dieser Picks, die richtig waren"
             >
               {Math.round(rate(r) * 100)}%
             </span>
             <span
               data-numeric
               className="w-12 shrink-0 text-right font-mono text-meta text-n2"
-              title={`Picked ${r.timesPicked} time${r.timesPicked === 1 ? "" : "s"}`}
+              title={`${r.timesPicked}× getippt`}
             >
               {r.timesPicked}×
             </span>
@@ -184,8 +184,8 @@ export function TeamConsensus({
       </ul>
 
       <p className="text-meta text-n2">
-        Bar length is how often {subject} picked that team; the filled part is how often that
-        pick was correct.
+        Die Balkenlänge zeigt, wie oft {subject} dieses Team getippt hat; der gefüllte Teil, wie
+        oft der Pick richtig war.
       </p>
     </section>
   );

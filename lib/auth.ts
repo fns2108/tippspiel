@@ -100,7 +100,7 @@ export function validateUsername(raw: string): string {
   const username = raw.trim().replace(/\s+/g, " ");
   if (!USERNAME_RE.test(username)) {
     throw new RegistrationError(
-      "Names are 3–24 characters, using letters, numbers, spaces, hyphens and underscores.",
+      "Namen haben 3–24 Zeichen: Buchstaben, Zahlen, Leerzeichen, Binde- und Unterstriche.",
     );
   }
   return username;
@@ -108,10 +108,10 @@ export function validateUsername(raw: string): string {
 
 export function validatePassword(password: string): string {
   if (password.length < 8) {
-    throw new RegistrationError("Passwords need at least 8 characters.");
+    throw new RegistrationError("Passwörter brauchen mindestens 8 Zeichen.");
   }
   if (password.length > 200) {
-    throw new RegistrationError("That password is too long.");
+    throw new RegistrationError("Dieses Passwort ist zu lang.");
   }
   return password;
 }
@@ -148,7 +148,7 @@ export async function registerUser(input: {
       .returning({ code: inviteKeys.code });
 
     if (claimed.length === 0) {
-      throw new RegistrationError("That invite key is not valid, or has already been used up.");
+      throw new RegistrationError("Dieser Invite-Key ist ungültig oder schon verbraucht.");
     }
 
     const [{ count }] = await tx.select({ count: sql<number>`count(*)::int` }).from(users);
@@ -160,7 +160,7 @@ export async function registerUser(input: {
     try {
       await tx.insert(users).values({ id, username, usernameLower, passwordHash, isAdmin });
     } catch {
-      throw new RegistrationError("That name is already taken.");
+      throw new RegistrationError("Dieser Name ist schon vergeben.");
     }
 
     await tx.insert(inviteRedemptions).values({ code, userId: id });

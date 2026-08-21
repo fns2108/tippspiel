@@ -67,10 +67,10 @@ export function PushToggle() {
         endpoint: json.endpoint!,
         keys: { p256dh: json.keys!.p256dh, auth: json.keys!.auth },
       });
-      if (!result.ok) throw new Error("The server rejected the subscription.");
+      if (!result.ok) throw new Error("Der Server hat die Anmeldung abgelehnt.");
       setStatus("on");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not turn reminders on.");
+      setError(err instanceof Error ? err.message : "Erinnerungen konnten nicht aktiviert werden.");
       setStatus("off");
     }
   }
@@ -87,7 +87,7 @@ export function PushToggle() {
       }
       setStatus("off");
     } catch {
-      setError("Could not turn reminders off.");
+      setError("Erinnerungen konnten nicht deaktiviert werden.");
       setStatus("on");
     }
   }
@@ -109,8 +109,8 @@ export function PushToggle() {
           <BellIcon />
         </span>
         <p className="text-sm text-n1">
-          Reminders are not available in this browser. The banner on the picks page still
-          shows what is open.
+          Erinnerungen sind in diesem Browser nicht verfügbar. Das Banner auf der Picks-Seite
+          zeigt trotzdem, was noch offen ist.
         </p>
       </div>
     );
@@ -123,8 +123,8 @@ export function PushToggle() {
           <BellIcon />
         </span>
         <p className="text-sm text-n1">
-          To get reminders on iPhone, tap Share then <strong>Add to Home Screen</strong>, and
-          open Pick&apos;em from there.
+          Für Erinnerungen auf dem iPhone: auf Teilen tippen, dann <strong>Zum Home-Bildschirm</strong>,
+          und Pick&apos;em von dort öffnen.
         </p>
       </div>
     );
@@ -137,8 +137,8 @@ export function PushToggle() {
           <BellIcon />
         </span>
         <p className="text-sm text-n1">
-          Notifications are blocked for this site. Re-enable them in your browser settings to
-          get reminders.
+          Benachrichtigungen sind für diese Seite blockiert. Aktiviere sie in den
+          Browser-Einstellungen wieder, um Erinnerungen zu bekommen.
         </p>
       </div>
     );
@@ -153,11 +153,11 @@ export function PushToggle() {
         <BellIcon />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm">Pick reminders</p>
+        <p className="text-sm">Pick-Erinnerungen</p>
         <p className="text-meta text-n1">
           {on
-            ? "One nudge a day while you still have games open."
-            : "Get one nudge a day while you still have games open."}
+            ? "Ein Hinweis pro Tag, solange du noch offene Spiele hast."
+            : "Bekomme einen Hinweis pro Tag, solange du noch offene Spiele hast."}
         </p>
         {error && (
           <p role="alert" className="mt-1 text-meta text-wrong">
@@ -171,7 +171,7 @@ export function PushToggle() {
         disabled={busy}
         className={`btn ${on ? "btn-secondary" : "btn-primary"}`}
       >
-        {busy ? "Working…" : on ? "Turn off" : "Turn on"}
+        {busy ? "Moment…" : on ? "Ausschalten" : "Einschalten"}
       </button>
     </div>
   );

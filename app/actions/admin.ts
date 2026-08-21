@@ -22,7 +22,7 @@ export async function createInviteKeyAction(
   const expiresInDays = Number(formData.get("expiresInDays") ?? 0);
 
   if (!Number.isInteger(maxUses) || maxUses < 1 || maxUses > 100) {
-    return { error: "Uses must be a whole number between 1 and 100.", notice: null };
+    return { error: "Nutzungen müssen eine ganze Zahl zwischen 1 und 100 sein.", notice: null };
   }
 
   const expiresAt =
@@ -92,7 +92,7 @@ export async function overrideResultAction(formData: FormData): Promise<void> {
       .update(games)
       .set({
         status: "post",
-        statusDetail: "Final (corrected)",
+        statusDetail: "Endstand (korrigiert)",
         winnerTeamId: isTie ? null : winnerTeamId,
         isTie,
         manualOverride: true,

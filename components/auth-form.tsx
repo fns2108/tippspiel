@@ -60,7 +60,7 @@ function Submit({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" disabled={pending} className="btn btn-primary w-full">
-      {pending ? "Working…" : children}
+      {pending ? "Moment…" : children}
     </button>
   );
 }

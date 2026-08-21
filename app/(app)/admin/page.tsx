@@ -7,7 +7,7 @@ import { RefreshIcon } from "@/components/icons";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { games, inviteKeys, syncState, users } from "@/lib/db/schema";
-import { SERVER_TZ, formatDayAndTime } from "@/lib/format";
+import { SERVER_TZ, formatDate, formatDayAndTime } from "@/lib/format";
 import { allWeekRefs, currentSeason, weekRef } from "@/lib/nfl/season";
 import { getCurrentWeekOrdinal, getWeekGames } from "@/lib/queries";
 
@@ -37,13 +37,13 @@ export default async function AdminPage() {
       <header className="rule-head">
         <h1>Admin</h1>
         <p className="label" data-numeric>
-          {members.length} {members.length === 1 ? "member" : "members"}
+          {members.length} {members.length === 1 ? "Mitglied" : "Mitglieder"}
         </p>
       </header>
 
       {failing.length > 0 && (
         <section className="border border-wrong bg-wrong-soft px-3 py-2.5">
-          <h2 className="text-sm font-medium text-wrong">Recent sync errors</h2>
+          <h2 className="text-sm font-medium text-wrong">Letzte Sync-Fehler</h2>
           <ul className="mt-1 space-y-0.5">
             {failing.map((r) => (
               <li key={r.key} className="font-mono text-meta text-wrong">
@@ -52,31 +52,31 @@ export default async function AdminPage() {
             ))}
           </ul>
           <p className="mt-1.5 text-meta text-n1">
-            Pages are serving the last known data. Try a resync below.
+            Die Seiten zeigen den zuletzt bekannten Stand. Versuch unten einen erneuten Abruf.
           </p>
         </section>
       )}
 
       <section aria-labelledby="keys" className="space-y-3">
         <div className="rule-head">
-          <h2 id="keys">Invite keys</h2>
-          <p className="label">Required to register</p>
+          <h2 id="keys">Invite-Keys</h2>
+          <p className="label">Zum Registrieren nötig</p>
         </div>
 
         <InviteKeyForm />
 
         {keys.length === 0 ? (
-          <p className="text-sm text-n1">No keys yet.</p>
+          <p className="text-sm text-n1">Noch keine Keys.</p>
         ) : (
           <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
             <table className="w-full min-w-[38rem] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-rule">
                   <th scope="col" className="py-2 text-left"><span className="label">Key</span></th>
-                  <th scope="col" className="py-2 pl-3 text-left"><span className="label">Label</span></th>
-                  <th scope="col" className="py-2 pl-3 text-right"><span className="label">Used</span></th>
+                  <th scope="col" className="py-2 pl-3 text-left"><span className="label">Bezeichnung</span></th>
+                  <th scope="col" className="py-2 pl-3 text-right"><span className="label">Genutzt</span></th>
                   <th scope="col" className="py-2 pl-3 text-left"><span className="label">Status</span></th>
-                  <th scope="col" className="py-2 pl-3"><span className="sr-only">Actions</span></th>
+                  <th scope="col" className="py-2 pl-3"><span className="sr-only">Aktionen</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -99,13 +99,13 @@ export default async function AdminPage() {
                       </td>
                       <td className="py-2 pl-3 text-meta">
                         {k.revokedAt ? (
-                          <span className="text-n2">Revoked</span>
+                          <span className="text-n2">Widerrufen</span>
                         ) : spent ? (
-                          <span className="text-n2">Used up</span>
+                          <span className="text-n2">Aufgebraucht</span>
                         ) : expired ? (
-                          <span className="text-n2">Expired</span>
+                          <span className="text-n2">Abgelaufen</span>
                         ) : (
-                          <span className="text-correct">Active</span>
+                          <span className="text-correct">Aktiv</span>
                         )}
                       </td>
                       <td className="py-2 pl-3">
@@ -118,7 +118,7 @@ export default async function AdminPage() {
                                 type="submit"
                                 className="px-2 py-1 text-meta text-n1 hover:text-wrong"
                               >
-                                Revoke
+                                Widerrufen
                               </button>
                             </form>
                           )}
@@ -135,13 +135,13 @@ export default async function AdminPage() {
 
       <section aria-labelledby="data" className="space-y-3">
         <div className="rule-head">
-          <h2 id="data">Data</h2>
-          <p className="label">{season} season</p>
+          <h2 id="data">Daten</h2>
+          <p className="label">Saison {season}</p>
         </div>
         <form action={resyncWeekAction} className="flex flex-wrap items-end gap-3">
           <div>
             <label htmlFor="resync-week" className="label mb-1.5 block">
-              Resync week
+              Woche neu laden
             </label>
             <select
               id="resync-week"
@@ -158,24 +158,24 @@ export default async function AdminPage() {
           </div>
           <button type="submit" className="btn btn-secondary">
             <RefreshIcon />
-            Fetch now
+            Jetzt laden
           </button>
         </form>
         {syncRows.length > 0 && (
           <p className="text-meta text-n2">
-            Last fetch: {formatDayAndTime(syncRows[0].lastSyncedAt, SERVER_TZ)} ({SERVER_TZ})
+            Zuletzt geladen: {formatDayAndTime(syncRows[0].lastSyncedAt, SERVER_TZ)} ({SERVER_TZ})
           </p>
         )}
       </section>
 
       <section aria-labelledby="results" className="space-y-3">
         <div className="rule-head">
-          <h2 id="results">Correct a result</h2>
+          <h2 id="results">Ergebnis korrigieren</h2>
           <p className="label">{weekRef(ordinal).label}</p>
         </div>
         <p className="text-sm text-n1">
-          Only needed if the feed gets a result wrong. A corrected game stops being updated
-          by the sync until you release it.
+          Nur nötig, wenn der Feed ein Ergebnis falsch hat. Ein korrigiertes Spiel wird vom Sync
+          nicht mehr angefasst, bis du es wieder freigibst.
         </p>
         <ul className="border-t border-rule">
           {weekGames.map((g) => (
@@ -192,7 +192,7 @@ export default async function AdminPage() {
               <form action={overrideResultAction} className="flex items-center gap-2">
                 <input type="hidden" name="gameId" value={g.id} />
                 <label htmlFor={`o-${g.id}`} className="sr-only">
-                  Result for {g.away.abbrev} at {g.home.abbrev}
+                  Ergebnis für {g.away.abbrev} bei {g.home.abbrev}
                 </label>
                 <select
                   id={`o-${g.id}`}
@@ -200,18 +200,18 @@ export default async function AdminPage() {
                   defaultValue={g.isTie ? "tie" : (g.winnerTeamId ?? "")}
                   className="input h-9 min-h-0 w-40 py-1 text-sm"
                 >
-                  <option value="">Select winner…</option>
+                  <option value="">Sieger wählen…</option>
                   <option value={g.away.id}>{g.away.displayName}</option>
                   <option value={g.home.id}>{g.home.displayName}</option>
-                  <option value="tie">Tie</option>
-                  <option value="release">Release to feed</option>
+                  <option value="tie">Unentschieden</option>
+                  <option value="release">Wieder an den Feed</option>
                 </select>
                 <button type="submit" className="btn btn-secondary h-9 min-h-0 px-3 py-1 text-meta">
-                  Apply
+                  Übernehmen
                 </button>
               </form>
               {g.status === "post" && (
-                <span className="label">{g.statusDetail?.includes("corrected") ? "corrected" : ""}</span>
+                <span className="label">{g.statusDetail?.includes("korrigiert") ? "korrigiert" : ""}</span>
               )}
             </li>
           ))}
@@ -220,7 +220,7 @@ export default async function AdminPage() {
 
       <section aria-labelledby="members" className="space-y-3">
         <div className="rule-head">
-          <h2 id="members">Members</h2>
+          <h2 id="members">Mitglieder</h2>
         </div>
         <ul className="border-t border-rule">
           {members.map((m) => (
@@ -228,7 +228,7 @@ export default async function AdminPage() {
               <span className="flex-1 text-sm">{m.username}</span>
               {m.isAdmin && <span className="label">admin</span>}
               <span className="font-mono text-meta text-n2">
-                joined {formatDayAndTime(m.createdAt, SERVER_TZ).split(",")[0]}
+                dabei seit {formatDate(m.createdAt, SERVER_TZ)}
               </span>
             </li>
           ))}

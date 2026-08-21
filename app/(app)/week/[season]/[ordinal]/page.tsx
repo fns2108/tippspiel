@@ -20,7 +20,7 @@ type Params = { season: string; ordinal: string };
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { ordinal } = await params;
   const n = Number(ordinal);
-  return { title: isValidOrdinal(n) ? `${weekRef(n).label} grid` : "Grid" };
+  return { title: isValidOrdinal(n) ? `${weekRef(n).label} Grid` : "Grid" };
 }
 
 export default async function GridPage({ params }: { params: Promise<Params> }) {
@@ -52,7 +52,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
           <LiveRefresh active={view.liveCount > 0} />
         </div>
         <p className="label" data-numeric>
-          {revealed.length}/{allGames.length} revealed
+          {revealed.length}/{allGames.length} aufgedeckt
         </p>
       </header>
 
@@ -60,11 +60,11 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
 
       {allGames.length === 0 ? (
         <p className="border border-rule bg-panel px-4 py-8 text-center text-sm text-n1">
-          No games are scheduled for {view.ref.label} yet.
+          Für {view.ref.label} sind noch keine Spiele angesetzt.
         </p>
       ) : members.length === 0 ? (
         <p className="border border-rule bg-panel px-4 py-8 text-center text-sm text-n1">
-          Nobody has joined the pool yet.
+          Es ist noch niemand dabei.
         </p>
       ) : (
         <>
@@ -73,7 +73,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
               <span aria-hidden>
                 <LockIcon />
               </span>
-              Nothing has kicked off yet. Each column fills in as its game starts.
+              Es hat noch nichts angepfiffen. Jede Spalte füllt sich, sobald ihr Spiel startet.
             </p>
           )}
 
@@ -82,8 +82,8 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
           <div className="edge-fade -mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
             <table className="w-full min-w-max border-collapse text-sm">
               <caption className="sr-only">
-                Every member&apos;s pick for each game in {view.ref.label}. Picks appear once a
-                game kicks off.
+                Die Picks aller Mitglieder für jedes Spiel in {view.ref.label}. Picks erscheinen,
+                sobald ein Spiel angepfiffen ist.
               </caption>
               <thead>
                 <tr className="border-b border-ink">
@@ -91,7 +91,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                     scope="col"
                     className="sticky left-0 z-10 bg-paper py-2 pr-3 text-left align-bottom"
                   >
-                    <span className="label">Game</span>
+                    <span className="label">Spiel</span>
                   </th>
                   {members.map((m) => (
                     <th key={m.id} scope="col" className="px-1.5 py-2 align-bottom">
@@ -178,9 +178,9 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                             <td
                               key={m.id}
                               className="px-1.5 py-1.5 text-center text-n3"
-                              title="Hidden until kickoff"
+                              title="Bis zum Kickoff verborgen"
                             >
-                              <span aria-label="Hidden until kickoff">·</span>
+                              <span aria-label="Bis zum Kickoff verborgen">·</span>
                             </td>
                           );
                         }
@@ -189,7 +189,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                             <td
                               key={m.id}
                               className="px-1.5 py-1.5 text-center font-mono text-meta text-n3"
-                              title={`${m.username} did not pick this game`}
+                              title={`${m.username} hat dieses Spiel nicht getippt`}
                             >
                               —
                             </td>
@@ -227,7 +227,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                 <tr className="border-t-2 border-ink">
                   <th scope="row" className="sticky left-0 z-10 bg-paper py-2 pr-3 text-left">
                     <span className="label">
-                      {week?.complete ? "Final" : "Correct so far"}
+                      {week?.complete ? "Endstand" : "Bisher richtig"}
                     </span>
                   </th>
                   {members.map((m) => {
@@ -243,8 +243,8 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                           title={
                             isWinner
                               ? (week?.winnerIds.length ?? 0) > 1
-                                ? "Shared the week"
-                                : "Won the week"
+                                ? "Woche geteilt"
+                                : "Woche gewonnen"
                               : undefined
                           }
                         >
@@ -261,7 +261,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
           {week?.complete && week.winnerIds.length > 0 && (
             <p className="text-sm text-n1">
               <span className="label mr-2">
-                {week.winnerIds.length > 1 ? "Shared week" : "Week winner"}
+                {week.winnerIds.length > 1 ? "Woche geteilt" : "Wochensieger"}
               </span>
               <span className="font-medium text-ink">
                 {week.winnerIds

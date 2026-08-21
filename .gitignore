@@ -11,8 +11,6 @@ build/
 *.tsbuildinfo
 next-env.d.ts
 
-# Local PGlite development database
-.pglite/
-
-# Design review captures
-.impeccable/review/
+# Local tooling — kept on disk, never in the repo
+.claude/
+.impeccable/

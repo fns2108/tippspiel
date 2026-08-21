@@ -57,7 +57,7 @@ export function AppShell({
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-ink focus:px-3 focus:py-2 focus:text-ink-on"
       >
-        Skip to content
+        Zum Inhalt springen
       </a>
 
       <header className="sticky top-0 z-30 border-b border-rule bg-paper/95 backdrop-blur-[2px]">
@@ -72,7 +72,7 @@ export function AppShell({
           <span aria-hidden className="hidden h-4 w-px bg-rule md:block" />
 
           {/* Desktop navigation. On mobile this lives in the bottom bar. */}
-          <nav aria-label="Main" className="hidden md:block">
+          <nav aria-label="Hauptnavigation" className="hidden md:block">
             <ul className="flex items-center gap-1">
               {items.map((item) => {
                 const active = item.match(pathname);
@@ -129,7 +129,7 @@ export function AppShell({
 
       {/* Mobile tab bar. Fixed, thumb-reachable, clear of the home indicator. */}
       <nav
-        aria-label="Main"
+        aria-label="Hauptnavigation"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-rule bg-paper/95 backdrop-blur-[2px] md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >

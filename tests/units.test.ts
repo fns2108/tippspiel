@@ -89,8 +89,8 @@ describe("spreads", () => {
   it("reads the favourite off a home-relative spread", () => {
     const home = { abbrev: "SEA" };
     const away = { abbrev: "NE" };
-    assert.match(describeLine(-3.5, home, away)!, /^SEA favoured by 3.5$/);
-    assert.match(describeLine(3.5, home, away)!, /^NE favoured by 3.5$/);
+    assert.match(describeLine(-3.5, home, away)!, /^SEA favorisiert mit 3.5$/);
+    assert.match(describeLine(3.5, home, away)!, /^NE favorisiert mit 3.5$/);
     assert.equal(describeLine(null, home, away), null);
     assert.match(describeLine(0, home, away)!, /Pick/);
   });
@@ -159,15 +159,15 @@ describe("team colours", () => {
 describe("formatting", () => {
   it("groups a Monday nighter under Monday, not the European Tuesday", () => {
     // 02:15 Tuesday in Berlin is still Monday night in the NFL's own calendar.
-    assert.equal(nflDayLabel(new Date("2026-10-06T00:15:00Z")), "Monday");
+    assert.equal(nflDayLabel(new Date("2026-10-06T00:15:00Z")), "Montag");
   });
 
   it("counts down in units that read at a glance", () => {
     const now = new Date("2026-09-01T12:00:00Z");
-    assert.equal(countdown(new Date("2026-09-01T12:38:00Z"), now), "38m");
-    assert.equal(countdown(new Date("2026-09-01T16:12:00Z"), now), "4h 12m");
-    assert.equal(countdown(new Date("2026-09-04T12:00:00Z"), now), "3 days");
-    assert.equal(countdown(new Date("2026-09-01T11:00:00Z"), now), "now");
+    assert.equal(countdown(new Date("2026-09-01T12:38:00Z"), now), "38 Min");
+    assert.equal(countdown(new Date("2026-09-01T16:12:00Z"), now), "4 Std 12 Min");
+    assert.equal(countdown(new Date("2026-09-04T12:00:00Z"), now), "3 Tage");
+    assert.equal(countdown(new Date("2026-09-01T11:00:00Z"), now), "jetzt");
   });
 
   it("renders percentages without a leading zero, and copes with none played", () => {

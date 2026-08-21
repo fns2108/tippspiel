@@ -19,10 +19,10 @@ export type PickRejection =
   | "KICKED_OFF";
 
 export const PICK_ERROR_MESSAGES: Record<PickRejection, string> = {
-  NO_SESSION: "You are signed out. Sign in and try again.",
-  NO_SUCH_GAME: "That game no longer exists.",
-  TEAM_NOT_IN_GAME: "That team is not playing in this game.",
-  KICKED_OFF: "That game has kicked off — picks are locked.",
+  NO_SESSION: "Du bist abgemeldet. Melde dich an und versuche es erneut.",
+  NO_SUCH_GAME: "Dieses Spiel gibt es nicht mehr.",
+  TEAM_NOT_IN_GAME: "Dieses Team spielt in diesem Spiel nicht mit.",
+  KICKED_OFF: "Dieses Spiel hat angepfiffen — Picks sind gesperrt.",
 };
 
 /**

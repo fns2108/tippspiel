@@ -5,7 +5,7 @@ import { POSTSEASON, PRO_BOWL_WEEK, REGULAR, REGULAR_WEEKS } from "@/lib/espn/cl
  * (`/week/2026/19`) and so ordering, "next week", and season totals are plain
  * arithmetic. The Pro Bowl is not pickable and has no ordinal.
  *
- *   1..18  regular season      → "Week 1" .. "Week 18"
+ *   1..18  regular season      → "Woche 1" .. "Woche 18"
  *   19     postseason week 1   → "Wild Card"
  *   20     postseason week 2   → "Divisional"
  *   21     postseason week 3   → "Conference"
@@ -36,7 +36,7 @@ export function weekRef(ordinal: number): WeekRef {
       ordinal,
       seasonType: REGULAR,
       week: ordinal,
-      label: `Week ${ordinal}`,
+      label: `Woche ${ordinal}`,
       short: `W${ordinal}`,
       isPostseason: false,
     };

@@ -1,7 +1,8 @@
 {
   "name": "Pick'em",
   "short_name": "Pick'em",
-  "description": "A private NFL pick'em pool.",
+  "description": "Eine private NFL-Tipprunde.",
+  "lang": "de",
   "start_url": "/picks",
   "scope": "/",
   "display": "standalone",

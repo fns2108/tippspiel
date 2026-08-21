@@ -111,8 +111,8 @@ export async function sendPickReminders(now: Date = new Date()): Promise<Reminde
 
     const firstLock = new Date(row.firstLock);
     const payload = JSON.stringify({
-      title: `${row.open} ${row.open === 1 ? "game" : "games"} still open`,
-      body: `${ref.label} — first kickoff in ${countdown(firstLock, now)}.`,
+      title: `${row.open} ${row.open === 1 ? "Spiel" : "Spiele"} noch offen`,
+      body: `${ref.label} — erster Kickoff in ${countdown(firstLock, now)}.`,
       tag: `pickem-${ref.ordinal}`,
       url: "/picks",
     });

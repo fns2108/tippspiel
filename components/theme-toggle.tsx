@@ -33,7 +33,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   }
 
   const label =
-    mode === "system" ? "Theme: follow system" : mode === "light" ? "Theme: light" : "Theme: dark";
+    mode === "system" ? "Design: wie System" : mode === "light" ? "Design: hell" : "Design: dunkel";
 
   return (
     <button

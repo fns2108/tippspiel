@@ -13,13 +13,13 @@ const NFL_TZ = "America/New_York";
 export const SERVER_TZ = process.env.DISPLAY_TZ || "Europe/Berlin";
 
 const DAY_LABELS: Record<string, string> = {
-  Mon: "Monday",
-  Tue: "Tuesday",
-  Wed: "Wednesday",
-  Thu: "Thursday",
-  Fri: "Friday",
-  Sat: "Saturday",
-  Sun: "Sunday",
+  Mon: "Montag",
+  Tue: "Dienstag",
+  Wed: "Mittwoch",
+  Thu: "Donnerstag",
+  Fri: "Freitag",
+  Sat: "Samstag",
+  Sun: "Sonntag",
 };
 
 const easternParts = (d: Date) =>
@@ -42,17 +42,38 @@ export function nflDayKey(kickoff: Date): string {
   return `${p.year}-${p.month}-${p.day}`;
 }
 
-/** "Sunday", "Monday" — the NFL's day, not the viewer's. */
+/** "Sonntag", "Montag" — the NFL's day, not the viewer's. */
 export function nflDayLabel(kickoff: Date): string {
   return DAY_LABELS[easternParts(kickoff).weekday] ?? easternParts(kickoff).weekday;
 }
 
+const DAY_SHORT: Record<string, string> = {
+  Mon: "MO",
+  Tue: "DI",
+  Wed: "MI",
+  Thu: "DO",
+  Fri: "FR",
+  Sat: "SA",
+  Sun: "SO",
+};
+
 export function nflDayShort(kickoff: Date): string {
-  return easternParts(kickoff).weekday.toUpperCase();
+  const weekday = easternParts(kickoff).weekday;
+  return DAY_SHORT[weekday] ?? weekday.toUpperCase();
+}
+
+/** Calendar date without a weekday — for "member since", not for kickoffs. */
+export function formatDate(d: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("de-DE", {
+    timeZone,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(d);
 }
 
 export function formatTime(d: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat("de-DE", {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",
@@ -61,7 +82,7 @@ export function formatTime(d: Date, timeZone: string): string {
 }
 
 export function formatDayAndTime(d: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat("de-DE", {
     timeZone,
     weekday: "short",
     day: "numeric",
@@ -90,10 +111,10 @@ export function describeLine(
   away: { abbrev: string },
 ): string | null {
   if (spread === null) return null;
-  if (spread === 0) return "Pick 'em — no favourite";
+  if (spread === 0) return "Pick 'em — kein Favorit";
   const fav = spread < 0 ? home.abbrev : away.abbrev;
   const by = Math.abs(spread);
-  return `${fav} favoured by ${Number.isInteger(by) ? by : by.toFixed(1)}`;
+  return `${fav} favorisiert mit ${Number.isInteger(by) ? by : by.toFixed(1)}`;
 }
 
 export function pct(n: number, d: number): string {
@@ -101,14 +122,14 @@ export function pct(n: number, d: number): string {
   return (n / d).toFixed(3).replace(/^0/, "");
 }
 
-/** Compact countdown: "4h 12m", "38m", "in 3 days". */
+/** Compact countdown: "4 Std 12 Min", "38 Min", "3 Tage". */
 export function countdown(target: Date, now: Date = new Date()): string {
   const ms = target.getTime() - now.getTime();
-  if (ms <= 0) return "now";
+  if (ms <= 0) return "jetzt";
   const minutes = Math.floor(ms / 60_000);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return `${minutes} Min`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ${minutes % 60}m`;
+  if (hours < 24) return `${hours} Std ${minutes % 60} Min`;
   const days = Math.floor(hours / 24);
-  return days === 1 ? "1 day" : `${days} days`;
+  return days === 1 ? "1 Tag" : `${days} Tage`;
 }

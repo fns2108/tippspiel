@@ -16,6 +16,22 @@ export async function consumeAttempt(
   const now = new Date();
   const windowStart = new Date(now.getTime() - windowMs);
 
+  /**
+   * Timestamps interpolated into a raw `sql` template must be ISO strings with
+   * an explicit cast, never Date objects.
+   *
+   * A Date assigned to a column (`values({ windowStart: now })`) is converted by
+   * drizzle's column mapper. A Date interpolated into `sql` has no column, so no
+   * mapper runs and the raw object reaches the driver — and drizzle's postgres-js
+   * driver replaces postgres.js's timestamp serializers with `(val) => val`,
+   * expecting to have done the conversion itself. The Date then lands in
+   * Buffer.byteLength, which throws ERR_INVALID_ARG_TYPE on the first login.
+   * PGlite installs no such override and serializes the Date itself, so this
+   * fails only against a real Postgres.
+   */
+  const nowSql = now.toISOString();
+  const windowStartSql = windowStart.toISOString();
+
   const [row] = await db
     .insert(authAttempts)
     .values({ key, count: 1, windowStart: now })
@@ -23,8 +39,8 @@ export async function consumeAttempt(
       target: authAttempts.key,
       set: {
         // Expired window resets; live window increments.
-        count: sql`case when ${authAttempts.windowStart} < ${windowStart} then 1 else ${authAttempts.count} + 1 end`,
-        windowStart: sql`case when ${authAttempts.windowStart} < ${windowStart} then ${now} else ${authAttempts.windowStart} end`,
+        count: sql`case when ${authAttempts.windowStart} < ${windowStartSql}::timestamptz then 1 else ${authAttempts.count} + 1 end`,
+        windowStart: sql`case when ${authAttempts.windowStart} < ${windowStartSql}::timestamptz then ${nowSql}::timestamptz else ${authAttempts.windowStart} end`,
       },
     })
     .returning({ count: authAttempts.count, windowStart: authAttempts.windowStart });

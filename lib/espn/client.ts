@@ -7,7 +7,18 @@
  * this file is what gets rewritten — nothing above it knows the difference.
  */
 
-const SITE_API = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
+/**
+ * `site.web.api.espn.com`, not the more obvious `site.api.espn.com`.
+ *
+ * They serve the same paths and the same payload shape, but `site.api` began
+ * returning 403 to every caller — any User-Agent, with or without a Referer,
+ * from a residential address as readily as from a datacenter. `site.web.api`
+ * is the host espn.com's own pages call and it still answers normally.
+ *
+ * If this one starts refusing too, check `cdn.espn.com/core/nfl/schedule?xhr=1`
+ * before assuming the whole feed is gone.
+ */
+const SITE_API = "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl";
 
 /** ESPN's `seasontype`. */
 export const REGULAR = 2;

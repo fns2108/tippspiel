@@ -309,7 +309,7 @@ export function renderShareCard(
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Label>Pick&apos;em</Label>
+          <Label>Tippspiel Wedel</Label>
           <Label color={N2}>{`Saison ${card.season}`}</Label>
         </div>
 

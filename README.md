@@ -1,4 +1,4 @@
-# Pick'em
+# Tippspiel Wedel
 
 A private NFL pick'em pool. Runs free on Vercel Hobby with a Neon Postgres database.
 

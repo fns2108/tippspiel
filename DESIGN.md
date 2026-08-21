@@ -1,5 +1,5 @@
 ---
-name: Pick'em
+name: Tippspiel Wedel
 description: A private NFL pick'em pool read as a Swiss-utility record book — paper, ink, hairlines, and team colour used only where it means something.
 colors:
   paper: "#fbfbfa"
@@ -192,7 +192,7 @@ components:
     width: "44px"
 ---
 
-# Design System: Pick'em
+# Design System: Tippspiel Wedel
 
 Recorded from the built interface, not from intention. Tokens live in
 [`app/globals.css`](app/globals.css); the frontmatter above is the machine-readable

@@ -16,10 +16,9 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Pick'em", template: "%s · Pick'em" },
-  description: "Eine private NFL-Tipprunde.",
+  title: { default: "Tippspiel Wedel", template: "%s · Tippspiel Wedel" },
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "Pick'em", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Tippspiel", statusBarStyle: "default" },
   robots: { index: false, follow: false },
 };
 

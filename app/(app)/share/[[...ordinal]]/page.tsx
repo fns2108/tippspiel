@@ -77,8 +77,8 @@ export default async function SharePage({ params }: { params: Promise<Params> })
 
           <ShareImage
             src={`/api/share/${season}/${ordinal}`}
-            filename={`pickem-${slug(card.ref.label)}-${season}.png`}
-            title={`Pick'em — ${card.ref.label}`}
+            filename={`tippspiel-${slug(card.ref.label)}-${season}.png`}
+            title={`Tippspiel Wedel — ${card.ref.label}`}
           />
 
           <p className="max-w-[34rem] text-meta text-n2">

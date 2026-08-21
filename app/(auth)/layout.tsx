@@ -9,7 +9,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
     <div className="min-h-dvh">
       <header className="border-b border-rule">
         <div className="shell flex h-14 items-center">
-          <span className="text-md font-semibold tracking-[-0.03em]">Pick&apos;em</span>
+          <span className="text-md font-semibold tracking-[-0.03em]">Tippspiel Wedel</span>
           <div className="ml-auto">
             <ThemeToggle />
           </div>

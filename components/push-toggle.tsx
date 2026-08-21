@@ -124,7 +124,7 @@ export function PushToggle() {
         </span>
         <p className="text-sm text-n1">
           Für Erinnerungen auf dem iPhone: auf Teilen tippen, dann <strong>Zum Home-Bildschirm</strong>,
-          und Pick&apos;em von dort öffnen.
+          und Tippspiel Wedel von dort öffnen.
         </p>
       </div>
     );

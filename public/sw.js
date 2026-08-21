@@ -16,7 +16,7 @@ self.addEventListener("push", (event) => {
     payload = { body: event.data ? event.data.text() : "" };
   }
 
-  const title = payload.title || "Pick'em";
+  const title = payload.title || "Tippspiel Wedel";
   const options = {
     body: payload.body || "Du hast noch offene Spiele.",
     tag: payload.tag || "pickem-reminder",

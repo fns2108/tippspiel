@@ -1,7 +1,6 @@
 {
-  "name": "Pick'em",
-  "short_name": "Pick'em",
-  "description": "Eine private NFL-Tipprunde.",
+  "name": "Tippspiel Wedel",
+  "short_name": "Tippspiel",
   "lang": "de",
   "start_url": "/picks",
   "scope": "/",

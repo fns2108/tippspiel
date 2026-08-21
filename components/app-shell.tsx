@@ -78,7 +78,7 @@ export function AppShell({
             href="/picks"
             className="text-md font-semibold tracking-[-0.03em] no-underline"
           >
-            Pick&apos;em
+            Tippspiel Wedel
           </Link>
 
           <span aria-hidden className="hidden h-4 w-px bg-rule md:block" />

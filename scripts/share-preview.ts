@@ -91,7 +91,7 @@ const card = demo
 const image = renderShareCard(card, await loadFonts());
 const png = Buffer.from(await image.arrayBuffer());
 
-const out = process.env.OUT || `/tmp/pickem-${card.season}-w${card.ref.ordinal}.png`;
+const out = process.env.OUT || `/tmp/tippspiel-${card.season}-w${card.ref.ordinal}.png`;
 await writeFile(out, png);
 
 console.log(`${card.ref.label} ${card.season}${demo ? "  (fixture)" : ""}`);

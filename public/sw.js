@@ -18,7 +18,7 @@ self.addEventListener("push", (event) => {
 
   const title = payload.title || "Pick'em";
   const options = {
-    body: payload.body || "You have games still open.",
+    body: payload.body || "Du hast noch offene Spiele.",
     tag: payload.tag || "pickem-reminder",
     renotify: true,
     icon: "/icon-192.png",

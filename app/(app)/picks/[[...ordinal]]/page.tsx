@@ -106,8 +106,8 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
           </div>
 
           <p className="pt-2 text-meta text-n2">
-            Die Picks aller erscheinen hier, sobald das Spiel angepfiffen ist. Bis dahin siehst
-            nur du deine eigenen.
+            Die Picks anderer erscheinen hier, sobald das Spiel angepfiffen ist. Bis dahin
+            siehst nur du deine eigenen.
           </p>
         </div>
       )}

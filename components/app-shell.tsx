@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GridIcon, PicksIcon, ShieldIcon, StandingsIcon, UserIcon } from "@/components/icons";
+import { GridIcon, PicksIcon, ShareIcon, ShieldIcon, StandingsIcon, UserIcon } from "@/components/icons";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type NavItem = {
@@ -12,6 +12,12 @@ type NavItem = {
   Icon: typeof PicksIcon;
 };
 
+/**
+ * Every destination is `force-dynamic`, which Next never prefetches on its own
+ * — so the three or four links a member actually uses ask for it explicitly.
+ * Paired with `experimental.staleTimes.dynamic` in next.config.ts, which is
+ * what keeps a prefetched page alive long enough to be clicked.
+ */
 function navItems(season: number, ordinal: number): NavItem[] {
   return [
     {
@@ -31,6 +37,12 @@ function navItems(season: number, ordinal: number): NavItem[] {
       label: "Standings",
       match: (p) => p.startsWith("/standings") || p.startsWith("/u/"),
       Icon: StandingsIcon,
+    },
+    {
+      href: "/share",
+      label: "Teilen",
+      match: (p) => p.startsWith("/share"),
+      Icon: ShareIcon,
     },
   ];
 }
@@ -80,6 +92,7 @@ export function AppShell({
                   <li key={item.label}>
                     <Link
                       href={item.href}
+                      prefetch
                       aria-current={active ? "page" : undefined}
                       className={`-mb-px inline-flex h-14 items-center border-b-2 px-3 text-sm no-underline transition-colors duration-150 ${
                         active
@@ -133,7 +146,7 @@ export function AppShell({
         className="fixed inset-x-0 bottom-0 z-30 border-t border-rule bg-paper/95 backdrop-blur-[2px] md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <ul className="grid grid-cols-3">
+        <ul className="grid" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
           {items.map((item) => {
             const active = item.match(pathname);
             const Icon = item.Icon;
@@ -141,6 +154,7 @@ export function AppShell({
               <li key={item.label}>
                 <Link
                   href={item.href}
+                  prefetch
                   aria-current={active ? "page" : undefined}
                   className={`flex h-[56px] flex-col items-center justify-center gap-1 no-underline transition-colors duration-150 ${
                     active ? "text-ink" : "text-n2"

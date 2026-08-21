@@ -20,7 +20,8 @@
     "test": "node --import tsx --conditions=react-server --test tests/*.test.ts",
     "invite": "tsx --conditions=react-server scripts/invite.ts",
     "check:privacy": "node scripts/check-privacy.mjs",
-    "status": "tsx --conditions=react-server scripts/status.ts"
+    "status": "tsx --conditions=react-server scripts/status.ts",
+    "share:preview": "tsx --conditions=react-server --tsconfig scripts/tsconfig.json scripts/share-preview.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.38.3",

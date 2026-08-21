@@ -120,12 +120,18 @@ export DATABASE_URL="postgresql://...-pooler...neon.tech/neondb?sslmode=require"
 | `npm run db:migrate` | Applies pending migrations. |
 | `npm run db:generate` | Generates a migration after changing `lib/db/schema.ts`. |
 | `npm run backfill` | Replays the completed 2025 season and verifies scoring. |
+| `npm run share:preview -- demo` | Draws the weekly share image to `/tmp` from a fixture. No database. |
+| `npm run share:preview -- 2025 5` | Same, from real data for one week. |
 
 `npm run backfill` needs `npm run sync -- 2025` first. It picks a whole real season for four
 synthetic members and checks every weekly record against an independently computed count,
 exercising shared ties, playoff rounds, drawn games and missed picks. Run it after touching
 `lib/queries.ts`. It removes its synthetic members afterwards.
 
+`npm run share:preview` renders the same PNG the `/share` page serves, so the layout can be
+checked out of season without a played week behind it. It only reads.
+
 Day-to-day there is nothing to run: scores refresh when someone loads a page, and locking,
 reveal and scoring are computed from the clock on every read. `/admin` covers invite keys,
-forcing a resync, and correcting a result by hand if the feed ever gets one wrong.
+forcing a resync, and correcting a result by hand if the feed ever gets one wrong. `/share`
+turns a week into an image for the group chat.

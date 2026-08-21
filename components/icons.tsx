@@ -171,3 +171,21 @@ export const PlusIcon = (p: IconProps) => (
     <path d="M8 3.5v9M3.5 8h9" />
   </Icon>
 );
+
+/** Share — a sheet with an arrow leaving the top, the platform idiom. */
+export const ShareIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M8 2.5v7.25" />
+    <path d="M5.5 5 8 2.5 10.5 5" />
+    <path d="M4.25 7.5H3.5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-.75" />
+  </Icon>
+);
+
+/** Download — the same sheet, arrow pointing in. */
+export const DownloadIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M8 2.5v7.25" />
+    <path d="M5.5 7.25 8 9.75l2.5-2.5" />
+    <path d="M2.5 11.5v1a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-1" />
+  </Icon>
+);

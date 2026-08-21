@@ -268,7 +268,7 @@ export function PickRow({
         </div>
 
         <div className="flex items-baseline gap-2.5 text-meta text-n2">
-          {game.neutralSite && <span>Neutraler Ort</span>}
+          {game.neutralSite && <span>Neutral Site</span>}
         </div>
       </div>
 
@@ -285,7 +285,7 @@ export function PickRow({
         <span
           aria-hidden
           className="self-center px-0.5 text-meta font-medium text-n3"
-          title={game.neutralSite ? "Neutraler Ort" : "bei"}
+          title={game.neutralSite ? "Neutral Site" : "bei"}
         >
           {game.neutralSite ? "vs" : "@"}
         </span>

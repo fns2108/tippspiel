@@ -1,0 +1,7 @@
+{
+  "//": "Next compiles JSX itself, so the root config leaves `jsx` at `preserve`. tsx has no such compiler behind it and falls back to the classic runtime, which wants a React import the app never needs. Only scripts that render JSX use this.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
+}

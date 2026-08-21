@@ -34,7 +34,7 @@ export async function createInviteKeyAction(
   await db.insert(inviteKeys).values({ code, label, maxUses, expiresAt });
 
   revalidatePath("/admin");
-  return { error: null, notice: `Created ${code}` };
+  return { error: null, notice: `${code} erstellt` };
 }
 
 export async function revokeInviteKeyAction(formData: FormData): Promise<void> {

@@ -52,7 +52,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
           <LiveRefresh active={view.liveCount > 0} />
         </div>
         <p className="label" data-numeric>
-          {revealed.length}/{allGames.length} aufgedeckt
+          {revealed.length}/{allGames.length} sichtbar
         </p>
       </header>
 
@@ -73,7 +73,8 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
               <span aria-hidden>
                 <LockIcon />
               </span>
-              Es hat noch nichts angepfiffen. Jede Spalte füllt sich, sobald ihr Spiel startet.
+              Es wurde noch kein Spiel angepfiffen. Die Spalten füllen sich, wenn das jeweilige
+              Spiel startet.
             </p>
           )}
 

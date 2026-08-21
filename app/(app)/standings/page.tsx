@@ -138,7 +138,7 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
                   </td>
                   <td data-numeric className="py-2 pl-3 text-right font-mono">
                     {s.weeklyWins > 0 ? (
-                      <span title={s.sharedWins > 0 ? `${s.sharedWins} shared` : undefined}>
+                      <span title={s.sharedWins > 0 ? `${s.sharedWins} geteilt` : undefined}>
                         {s.weeklyWins}
                         {s.sharedWins > 0 && <span className="text-n2">*</span>}
                       </span>

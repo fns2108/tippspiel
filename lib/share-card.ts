@@ -22,6 +22,12 @@ export type ShareRow = {
   leader: boolean;
   /** What this week pays them, in cents. Zero when the pool plays for nothing. */
   wonCents: number;
+  /**
+   * The overall season prize, in cents — carried only on the last payout week
+   * of the season, which is the picture that settles the pool. Zero everywhere
+   * else, including for the season winner in every other week.
+   */
+  seasonCents: number;
 };
 
 export type ShareGame = {
@@ -76,6 +82,13 @@ export async function loadShareCard(
   const payouts = payoutsFromBoard(settings, board);
   const paysThisWeek = payouts.enabled && payouts.payoutWeeks.includes(resolved);
 
+  // The last payout week is the one that settles the season, so it is the only
+  // picture that carries the overall prize — and only once every payout week
+  // is actually complete, which is when that prize is assigned at all.
+  const settlesSeason =
+    payouts.seasonSettled &&
+    payouts.payoutWeeks.at(-1) === resolved;
+
   const week = board.weeks.find((w) => w.ref.ordinal === resolved);
   const ref = weekRef(resolved);
 
@@ -102,6 +115,7 @@ export async function loadShareCard(
       decided: r.decided,
       leader,
       wonCents: leader ? share : 0,
+      seasonCents: settlesSeason ? (payouts.byUser.get(r.userId)?.seasonCents ?? 0) : 0,
     };
   });
 

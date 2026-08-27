@@ -16,7 +16,7 @@ import { weekRef } from "../lib/nfl/season.ts";
 import { loadFonts, renderShareCard } from "../lib/share-image.tsx";
 import type { ShareCard, ShareGame } from "../lib/share-card.ts";
 
-function demoCard(): ShareCard {
+function demoCard(final = false): ShareCard {
   const names = ["Finn", "Jonas", "Marie", "Hendrik", "Lena", "Ben", "Sofia", "Til"];
   const scores = [11, 11, 10, 9, 9, 8, 6, 5];
 
@@ -25,6 +25,9 @@ function demoCard(): ShareCard {
   const weeklyPrizeCents = 666;
   const winners = scores.filter((s) => s === scores[0]).length;
   const share = Math.floor(weeklyPrizeCents / winners);
+  // `final` draws the week that settles the season, where the overall prize is
+  // appended to whoever finished the year on top.
+  const seasonPrizeCents = final ? 4678 : 0;
 
   let rank = 0;
   const rows = names.map((username, i) => {
@@ -37,6 +40,7 @@ function demoCard(): ShareCard {
       decided: 13,
       leader,
       wonCents: leader ? share : 0,
+      seasonCents: username === "Finn" ? seasonPrizeCents : 0,
     };
   });
 
@@ -71,7 +75,7 @@ function demoCard(): ShareCard {
 
   return {
     season: 2025,
-    ref: weekRef(5),
+    ref: weekRef(final ? 18 : 5),
     complete: true,
     started: true,
     totalGames: games.length,
@@ -98,8 +102,9 @@ async function realCard(season: number, ordinal: number | null) {
 }
 
 const demo = process.argv[2] === "demo";
+// `demo final` draws the last payout week, the one that settles the season.
 const card = demo
-  ? demoCard()
+  ? demoCard(process.argv[3] === "final")
   : await realCard(Number(process.argv[2]) || new Date().getUTCFullYear(), Number(process.argv[3]) || null);
 
 const image = renderShareCard(card, await loadFonts());

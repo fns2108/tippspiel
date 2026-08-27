@@ -77,7 +77,6 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
     <section aria-labelledby="season-table" className="space-y-3">
       <div className="rule-head">
         <h2 id="season-table">Saison</h2>
-        <p className="label">Die meisten richtigen Picks gewinnen</p>
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">

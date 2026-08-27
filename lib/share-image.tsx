@@ -30,8 +30,17 @@ const SUNKEN = "#eeeeec";
 
 const FONT_DIR = join(process.cwd(), "assets", "fonts");
 
-/** Both footer lines, so they stay a matched pair. */
+/** The season line under the results. */
 const FOOT = { fontFamily: "JetBrains Mono", fontSize: 26, color: N1 } as const;
+
+/** Any amount printed beside a name. */
+const MONEY = {
+  display: "flex",
+  marginLeft: 18,
+  fontFamily: "JetBrains Mono",
+  fontSize: 26,
+  fontWeight: 700,
+} as const;
 
 /** Read once per warm instance; four files is not worth re-reading per request. */
 let fontsPromise: Promise<
@@ -181,19 +190,15 @@ function BoardRow({
           {row.username}
         </div>
         {/* The money sits against the name rather than in its own column: it
-            belongs to the person, and only winners have any. */}
+            belongs to the person, and only winners have any. On the week that
+            settles the season the overall prize is appended, so the last
+            picture of the year shows who actually walked away with what. */}
         {row.wonCents > 0 && (
-          <div
-            style={{
-              display: "flex",
-              marginLeft: 18,
-              fontFamily: "JetBrains Mono",
-              fontSize: 26,
-              fontWeight: 700,
-              color: won ? INK_ON : INK,
-            }}
-          >
-            {money(row.wonCents)}
+          <div style={{ ...MONEY, color: won ? INK_ON : INK }}>{money(row.wonCents)}</div>
+        )}
+        {row.seasonCents > 0 && (
+          <div style={{ ...MONEY, color: won ? INK_ON : INK }}>
+            {`+ ${money(row.seasonCents)}`}
           </div>
         )}
       </div>

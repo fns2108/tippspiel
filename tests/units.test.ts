@@ -197,7 +197,7 @@ describe("payouts", () => {
 
   it("divides the pot into a season prize and equal weekly shares", () => {
     const p = computePayouts(
-      { buyInCents: 2000, seasonPrizeCents: 2000, bestWeekPrizeCents: 0, includePlayoffs: false },
+      { potCents: 8000, seasonPrizeCents: 2000, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       regular(Array.from({ length: 18 }, () => null)),
       [],
@@ -212,7 +212,7 @@ describe("payouts", () => {
   it("splits a tied week and keeps the odd cent in the pot", () => {
     const weeks = regular([["a", "b"], ...Array.from({ length: 17 }, () => null)]);
     const p = computePayouts(
-      { buyInCents: 2000, seasonPrizeCents: 2000, bestWeekPrizeCents: 0, includePlayoffs: false },
+      { potCents: 8000, seasonPrizeCents: 2000, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       weeks,
       [],
@@ -230,7 +230,7 @@ describe("payouts", () => {
       i === 5 ? [] : i % 3 === 0 ? ["a", "b"] : [members[i % 4]],
     );
     const p = computePayouts(
-      { buyInCents: 2500, seasonPrizeCents: 3000, bestWeekPrizeCents: 0, includePlayoffs: false },
+      { potCents: 10000, seasonPrizeCents: 3000, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       regular(winners),
       ["a"],
@@ -245,8 +245,8 @@ describe("payouts", () => {
 
   it("counts playoff weeks only when the toggle says so", () => {
     const weeks = [...regular(Array.from({ length: 18 }, () => null)), week(19, []), week(22, [])];
-    const off = computePayouts({ buyInCents: 1000, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: false }, members, weeks, []);
-    const on = computePayouts({ buyInCents: 1000, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: true }, members, weeks, []);
+    const off = computePayouts({ potCents: 4000, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: false }, members, weeks, []);
+    const on = computePayouts({ potCents: 4000, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: true }, members, weeks, []);
     assert.equal(off.payoutWeeks.length, 18);
     assert.equal(on.payoutWeeks.length, 20);
     assert.ok(on.weeklyPrizeCents < off.weeklyPrizeCents, "the same pot spread wider pays less");
@@ -254,7 +254,7 @@ describe("payouts", () => {
 
   it("stays switched off when nobody paid in", () => {
     const p = computePayouts(
-      { buyInCents: 0, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: false },
+      { potCents: 0, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       regular([["a"]]),
       ["a"],
@@ -266,7 +266,7 @@ describe("payouts", () => {
 
   it("refuses to pay a season prize larger than the pot", () => {
     const p = computePayouts(
-      { buyInCents: 500, seasonPrizeCents: 100000, bestWeekPrizeCents: 0, includePlayoffs: false },
+      { potCents: 2000, seasonPrizeCents: 100000, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       regular(Array.from({ length: 18 }, () => null)),
       [],
@@ -294,7 +294,7 @@ describe("payouts", () => {
     ];
 
     const settings = {
-      buyInCents: 2500,
+      potCents: 10000,
       seasonPrizeCents: 2000,
       bestWeekPrizeCents: 2000,
       includePlayoffs: false,
@@ -324,7 +324,7 @@ describe("payouts", () => {
       ...Array.from({ length: 17 }, (_, i) => tiedWeek(i + 2, { a: 9 })),
     ];
     const p = computePayouts(
-      { buyInCents: 2500, seasonPrizeCents: 2000, bestWeekPrizeCents: 501, includePlayoffs: false },
+      { potCents: 10000, seasonPrizeCents: 2000, bestWeekPrizeCents: 501, includePlayoffs: false },
       members,
       played,
       ["a"],
@@ -339,13 +339,35 @@ describe("payouts", () => {
 
   it("clips a best-week prize that would overrun the pot", () => {
     const p = computePayouts(
-      { buyInCents: 500, seasonPrizeCents: 1500, bestWeekPrizeCents: 99999, includePlayoffs: false },
+      { potCents: 2000, seasonPrizeCents: 1500, bestWeekPrizeCents: 99999, includePlayoffs: false },
       members,
       regular(Array.from({ length: 18 }, () => null)),
       [],
     );
     assert.equal(p.weeklyPrizeCents, 0);
     assert.equal(p.bestWeekPrizeCents, p.potCents - 1500);
+  });
+
+  it("names the leftover when the pot does not divide by the headcount", () => {
+    // 100,01 € among four is 25,00 € each with a cent nobody can pay.
+    const p = computePayouts(
+      { potCents: 10001, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: false },
+      members,
+      regular(Array.from({ length: 18 }, () => null)),
+      [],
+    );
+    assert.equal(p.perPersonCents, 2500);
+    assert.equal(p.contributionRemainderCents, 1);
+
+    // The payout side is still exact — the whole pot is what gets divided.
+    const evenPot = computePayouts(
+      { potCents: 10000, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: false },
+      members,
+      regular(Array.from({ length: 18 }, () => null)),
+      [],
+    );
+    assert.equal(evenPot.contributionRemainderCents, 0);
+    assert.equal(evenPot.perPersonCents, 2500);
   });
 
   it("reads and writes amounts the way a person types them", () => {

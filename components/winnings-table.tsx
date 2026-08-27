@@ -41,7 +41,15 @@ export function WinningsTable({
       </div>
 
       <dl className="grid grid-cols-2 gap-px border border-rule bg-rule sm:grid-cols-3 lg:grid-cols-5">
-        <Figure label="Einsatz" value={money(payouts.buyInCents)} sub="pro Person" />
+        <Figure
+          label="Einsatz"
+          value={money(payouts.perPersonCents)}
+          sub={
+            payouts.contributionRemainderCents === 0
+              ? "pro Person"
+              : `pro Person · ${payouts.contributionRemainderCents} Cent Rest`
+          }
+        />
         <Figure
           label="Pro Woche"
           value={money(payouts.weeklyPrizeCents)}

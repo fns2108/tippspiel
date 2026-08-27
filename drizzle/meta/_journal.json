@@ -22,6 +22,13 @@
       "when": 1787849596956,
       "tag": "0002_broken_rocket_racer",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787850184582,
+      "tag": "0003_rename_buy_in_to_pot",
+      "breakpoints": true
     }
   ]
 }

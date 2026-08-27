@@ -23,13 +23,13 @@ function Submit() {
  * you to trust a pot that has not been saved yet.
  */
 export function PayoutForm({
-  buyInCents,
+  potCents,
   seasonPrizeCents,
   bestWeekPrizeCents,
   includePlayoffs,
   summary,
 }: {
-  buyInCents: number;
+  potCents: number;
   seasonPrizeCents: number;
   bestWeekPrizeCents: number;
   includePlayoffs: boolean;
@@ -52,16 +52,16 @@ export function PayoutForm({
           </label>
           <input
             id="p-buyin"
-            name="buyIn"
-            defaultValue={asAmount(buyInCents)}
-            placeholder="20,00"
+            name="pot"
+            defaultValue={asAmount(potCents)}
+            placeholder="160,00"
             inputMode="decimal"
             autoComplete="off"
             aria-describedby="p-buyin-hint"
             className="input tabular-nums"
           />
           <p id="p-buyin-hint" className="mt-1.5 text-meta text-n1">
-            Pro Person. Leer oder 0 schaltet Auszahlungen aus.
+            Alles zusammen. Leer oder 0 schaltet Auszahlungen aus.
           </p>
         </div>
 
@@ -144,7 +144,8 @@ export function PayoutForm({
 /** Shown under the form: what the saved numbers actually work out to. */
 export function PayoutSummary({
   players,
-  potCents,
+  perPersonCents,
+  remainderCents,
   weeks,
   weeklyPrizeCents,
   seasonPrizeCents,
@@ -152,7 +153,8 @@ export function PayoutSummary({
   enabled,
 }: {
   players: number;
-  potCents: number;
+  perPersonCents: number;
+  remainderCents: number;
   weeks: number;
   weeklyPrizeCents: number;
   seasonPrizeCents: number;
@@ -165,12 +167,13 @@ export function PayoutSummary({
   return (
     <dl className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-meta">
       <span className="flex items-baseline gap-1.5">
-        <dt className="label">Topf</dt>
+        <dt className="label">Pro Person</dt>
         <dd data-numeric className="font-mono font-medium">
-          {money(potCents)}
+          {money(perPersonCents)}
         </dd>
         <dd className="text-n2">
-          ({players} × {money(players > 0 ? potCents / players : 0)})
+          ({players} {players === 1 ? "Mitglied" : "Mitglieder"}
+          {remainderCents > 0 ? `, ${remainderCents} Cent Rest` : ""})
         </dd>
       </span>
       <span className="flex items-baseline gap-1.5">

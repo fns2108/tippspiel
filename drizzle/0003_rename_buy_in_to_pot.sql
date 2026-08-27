@@ -1,0 +1,1 @@
+ALTER TABLE "pool_settings" RENAME COLUMN "buy_in_cents" TO "pot_cents";

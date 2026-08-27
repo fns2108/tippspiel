@@ -205,13 +205,13 @@ export const syncState = pgTable("sync_state", {
  * a member being owed 4.199999999999999 euro. Every cent that cannot be split
  * evenly goes to the overall season winner, so the pot always balances.
  *
- * A missing row, or a buy-in of zero, means this pool is played for nothing —
+ * A missing row, or a pot of zero, means this pool is played for nothing —
  * and then no money appears anywhere in the interface.
  */
 export const poolSettings = pgTable("pool_settings", {
   season: integer("season").primaryKey(),
-  /** What each member paid in. */
-  buyInCents: integer("buy_in_cents").notNull().default(0),
+  /** Everything the pool is playing for, all the buy-ins together. */
+  potCents: integer("pot_cents").notNull().default(0),
   /** Taken off the top for the overall winner; the rest is split by week. */
   seasonPrizeCents: integer("season_prize_cents").notNull().default(0),
   /** Also off the top, for the best single week anyone manages all season. */

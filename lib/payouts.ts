@@ -3,7 +3,7 @@ import { weekRef } from "@/lib/nfl/season";
 /**
  * Who is owed what.
  *
- * The pool is one pot: every member's buy-in goes in, two fixed prizes are set
+ * The pool is one pot, set as a single figure, and two fixed prizes are set
  * aside — one for whoever finishes the season on top, one for the best single
  * week anybody manages — and what remains is divided equally across the payout
  * weeks. Winning a week pays its share; tying a week splits it.
@@ -24,22 +24,23 @@ import { weekRef } from "@/lib/nfl/season";
  */
 
 export type PoolSettings = {
-  buyInCents: number;
+  /** The whole pot, not a per-head figure. */
+  potCents: number;
   seasonPrizeCents: number;
   bestWeekPrizeCents: number;
   includePlayoffs: boolean;
 };
 
 export const NO_POOL: PoolSettings = {
-  buyInCents: 0,
+  potCents: 0,
   seasonPrizeCents: 0,
   bestWeekPrizeCents: 0,
   includePlayoffs: false,
 };
 
-/** A buy-in of zero is how a pool says it is played for nothing. */
+/** A pot of zero is how a pool says it is played for nothing. */
 export function poolIsPlayedForMoney(settings: PoolSettings): boolean {
-  return settings.buyInCents > 0;
+  return settings.potCents > 0;
 }
 
 /** Only what this module needs from a week — so it can be tested without a database. */
@@ -65,15 +66,22 @@ export type MemberWinnings = {
   /** The best-single-week prize, on the same timing as the overall prize. */
   bestWeekCents: number;
   totalCents: number;
-  /** Winnings minus what they paid in. */
+  /** Winnings minus their share of the pot. */
   netCents: number;
 };
 
 export type Payouts = {
   enabled: boolean;
   players: number;
-  buyInCents: number;
   potCents: number;
+  /**
+   * The pot divided by the headcount, rounded down to the cent — what each
+   * member is nominally in for. A pot that does not divide evenly leaves
+   * `contributionRemainderCents`, which somebody has to cover in real life;
+   * the interface names the figure rather than hiding it.
+   */
+  perPersonCents: number;
+  contributionRemainderCents: number;
   /** The ordinals that pay, in order. */
   payoutWeeks: number[];
   weeklyPrizeCents: number;
@@ -123,6 +131,10 @@ export function computePayouts(
   const players = memberIds.length;
   const enabled = poolIsPlayedForMoney(settings) && players > 0;
 
+  const potCents = enabled ? Math.max(0, settings.potCents) : 0;
+  const perPersonCents = players > 0 ? Math.floor(potCents / players) : 0;
+  const contributionRemainderCents = potCents - perPersonCents * players;
+
   const byUser = new Map<string, MemberWinnings>(
     memberIds.map((userId) => [
       userId,
@@ -133,7 +145,7 @@ export function computePayouts(
         seasonCents: 0,
         bestWeekCents: 0,
         totalCents: 0,
-        netCents: enabled ? -settings.buyInCents : 0,
+        netCents: enabled ? -perPersonCents : 0,
       },
     ]),
   );
@@ -142,14 +154,13 @@ export function computePayouts(
     .filter((w) => isPayoutWeek(w.ordinal, settings.includePlayoffs))
     .map((w) => w.ordinal);
 
-  const potCents = enabled ? settings.buyInCents * players : 0;
-
   if (!enabled || payoutWeeks.length === 0) {
     return {
       enabled: false,
       players,
-      buyInCents: settings.buyInCents,
       potCents,
+      perPersonCents,
+      contributionRemainderCents,
       payoutWeeks,
       weeklyPrizeCents: 0,
       seasonPrizeFloorCents: 0,
@@ -260,14 +271,15 @@ export function computePayouts(
 
   for (const row of byUser.values()) {
     row.totalCents = row.weeklyCents + row.seasonCents + row.bestWeekCents;
-    row.netCents = row.totalCents - settings.buyInCents;
+    row.netCents = row.totalCents - perPersonCents;
   }
 
   return {
     enabled: true,
     players,
-    buyInCents: settings.buyInCents,
     potCents,
+    perPersonCents,
+    contributionRemainderCents,
     payoutWeeks,
     weeklyPrizeCents,
     seasonPrizeFloorCents,

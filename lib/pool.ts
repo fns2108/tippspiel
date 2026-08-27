@@ -9,7 +9,7 @@ import type { Scoreboard } from "@/lib/queries";
 export async function getPoolSettings(season: number): Promise<PoolSettings> {
   const [row] = await db
     .select({
-      buyInCents: poolSettings.buyInCents,
+      potCents: poolSettings.potCents,
       seasonPrizeCents: poolSettings.seasonPrizeCents,
       bestWeekPrizeCents: poolSettings.bestWeekPrizeCents,
       includePlayoffs: poolSettings.includePlayoffs,

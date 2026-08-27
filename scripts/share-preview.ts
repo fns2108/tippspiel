@@ -83,9 +83,6 @@ function demoCard(): ShareCard {
       { username: "Marie", correct: 46 },
       { username: "Jonas", correct: 45 },
     ],
-    potCents: 16000,
-    weeklyPrizeCents,
-    seasonPrizeCents: 4012,
   };
 }
 

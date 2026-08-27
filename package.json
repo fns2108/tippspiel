@@ -17,6 +17,7 @@
     "seed:teams": "tsx --conditions=react-server scripts/seed-teams.ts",
     "sync": "tsx --conditions=react-server scripts/sync.ts",
     "backfill": "tsx --conditions=react-server scripts/backfill-2025.ts",
+    "seed:demo": "tsx --conditions=react-server scripts/seed-demo.ts",
     "test": "node --import tsx --conditions=react-server --test tests/*.test.ts",
     "invite": "tsx --conditions=react-server scripts/invite.ts",
     "check:privacy": "node scripts/check-privacy.mjs",

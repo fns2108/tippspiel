@@ -48,10 +48,6 @@ export type ShareCard = {
   finalGames: number;
   rows: ShareRow[];
   games: ShareGame[];
-  /** The pot, for the footer line. Zero when the pool plays for nothing. */
-  potCents: number;
-  weeklyPrizeCents: number;
-  seasonPrizeCents: number;
   /** Season table after this week, for the footer line. */
   seasonTop: { username: string; correct: number }[];
 };
@@ -140,9 +136,6 @@ export async function loadShareCard(
       username: s.username,
       correct: s.correct,
     })),
-    potCents: payouts.enabled ? payouts.potCents : 0,
-    weeklyPrizeCents: paysThisWeek ? payouts.weeklyPrizeCents : 0,
-    seasonPrizeCents: payouts.enabled ? payouts.seasonPrizeCents : 0,
   };
 }
 

@@ -120,6 +120,8 @@ export DATABASE_URL="postgresql://...-pooler...neon.tech/neondb?sslmode=require"
 | `npm run db:migrate` | Applies pending migrations. |
 | `npm run db:generate` | Generates a migration after changing `lib/db/schema.ts`. |
 | `npm run backfill` | Replays the completed 2025 season and verifies scoring. |
+| `npm run seed:demo -- 2025` | Fills a season with eight demo members and their picks. |
+| `npm run seed:demo -- --clear` | Removes every demo member again. |
 | `npm run share:preview -- demo` | Draws the weekly share image to `/tmp` from a fixture. No database. |
 | `npm run share:preview -- 2025 5` | Same, from real data for one week. |
 
@@ -130,6 +132,11 @@ exercising shared ties, playoff rounds, drawn games and missed picks. Run it aft
 
 `npm run share:preview` renders the same PNG the `/share` page serves, so the layout can be
 checked out of season without a played week behind it. It only reads.
+
+`npm run seed:demo` is for looking the app over before a season starts: sync a finished season
+first, then seed it, then set `NFL_SEASON` to that year so the app shows it. The members it
+creates are real rows — they appear in every season's standings until cleared — and they
+cannot log in. Clear them before the real season begins.
 
 Day-to-day there is nothing to run: scores refresh when someone loads a page, and locking,
 reveal and scoring are computed from the clock on every read. `/admin` covers invite keys,

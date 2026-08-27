@@ -103,8 +103,7 @@ function measure(card: ShareCard) {
   const results =
     card.games.length > 0 ? 40 + line(21) + 16 + gameRows * GAME_ROW_H : 0;
 
-  const footerLines = (card.seasonTop.length > 0 ? 1 : 0) + (card.potCents > 0 ? 1 : 0);
-  const footer = footerLines > 0 ? 26 + 2 + footerLines * line(26) + (footerLines - 1) * 12 : 0;
+  const footer = card.seasonTop.length > 0 ? 26 + 2 + line(26) : 0;
 
   return { height: PAD * 2 + head + board + results + footer + SLACK, gameRows };
 }
@@ -384,46 +383,22 @@ export function renderShareCard(
           </div>
         )}
 
-        {(card.seasonTop.length > 0 || card.potCents > 0) && (
+        {card.seasonTop.length > 0 && (
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
+              alignItems: "center",
               marginTop: "auto",
               paddingTop: 26,
               borderTop: `2px solid ${RULE}`,
             }}
           >
-            {card.seasonTop.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <Label>Saison</Label>
-                <div style={{ display: "flex", marginLeft: 24, ...FOOT }}>
-                  {card.seasonTop
-                    .map((s, i) => `${i + 1}. ${s.username} ${s.correct}`)
-                    .join("   \u00b7   ")}
-                </div>
-              </div>
-            )}
-            {card.potCents > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginTop: card.seasonTop.length > 0 ? 12 : 0,
-                }}
-              >
-                <Label>Kasse</Label>
-                <div style={{ display: "flex", marginLeft: 24, ...FOOT }}>
-                  {[
-                    `Topf ${money(card.potCents)}`,
-                    card.weeklyPrizeCents > 0 ? `Woche ${money(card.weeklyPrizeCents)}` : null,
-                    `Gesamtsieger ${money(card.seasonPrizeCents)}`,
-                  ]
-                    .filter(Boolean)
-                    .join("   \u00b7   ")}
-                </div>
-              </div>
-            )}
+            <Label>Saison</Label>
+            <div style={{ display: "flex", marginLeft: 24, ...FOOT }}>
+              {card.seasonTop
+                .map((s, i) => `${i + 1}. ${s.username} ${s.correct}`)
+                .join("   \u00b7   ")}
+            </div>
           </div>
         )}
       </div>

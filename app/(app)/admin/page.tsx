@@ -145,14 +145,15 @@ export default async function AdminPage() {
           <p className="label">Saison {season}</p>
         </div>
         <p className="max-w-[60ch] text-sm text-n1">
-          Alle Einsätze bilden einen Topf. Der Gesamtsieger bekommt seinen Anteil vorweg, der
-          Rest wird gleichmäßig auf die Auszahlungswochen verteilt. Wer eine Woche gewinnt,
-          bekommt ihren Anteil; bei Gleichstand wird geteilt. Cents, die nicht aufgehen, gehen
-          an den Gesamtsieger — so bleibt der Topf am Ende genau aufgeteilt.
+          Alle Einsätze bilden einen Topf. Gesamtsieger und beste Woche werden vorweg
+          abgezogen, der Rest wird gleichmäßig auf die Auszahlungswochen verteilt. Wer eine
+          Woche gewinnt, bekommt ihren Anteil; bei Gleichstand wird geteilt. Cents, die nicht
+          aufgehen, gehen an den Gesamtsieger — so bleibt der Topf am Ende genau aufgeteilt.
         </p>
         <PayoutForm
           buyInCents={settings.buyInCents}
           seasonPrizeCents={settings.seasonPrizeCents}
+          bestWeekPrizeCents={settings.bestWeekPrizeCents}
           includePlayoffs={settings.includePlayoffs}
           summary={
             <PayoutSummary
@@ -162,6 +163,7 @@ export default async function AdminPage() {
               weeks={payouts.payoutWeeks.length}
               weeklyPrizeCents={payouts.weeklyPrizeCents}
               seasonPrizeCents={payouts.seasonPrizeFloorCents}
+              bestWeekPrizeCents={payouts.bestWeekPrizeCents}
             />
           }
         />

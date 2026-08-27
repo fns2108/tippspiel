@@ -214,6 +214,8 @@ export const poolSettings = pgTable("pool_settings", {
   buyInCents: integer("buy_in_cents").notNull().default(0),
   /** Taken off the top for the overall winner; the rest is split by week. */
   seasonPrizeCents: integer("season_prize_cents").notNull().default(0),
+  /** Also off the top, for the best single week anyone manages all season. */
+  bestWeekPrizeCents: integer("best_week_prize_cents").notNull().default(0),
   /** Whether Wild Card through Super Bowl are payout weeks too. */
   includePlayoffs: boolean("include_playoffs").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

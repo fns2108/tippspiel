@@ -11,6 +11,7 @@ export async function getPoolSettings(season: number): Promise<PoolSettings> {
     .select({
       buyInCents: poolSettings.buyInCents,
       seasonPrizeCents: poolSettings.seasonPrizeCents,
+      bestWeekPrizeCents: poolSettings.bestWeekPrizeCents,
       includePlayoffs: poolSettings.includePlayoffs,
     })
     .from(poolSettings)
@@ -53,6 +54,7 @@ export function payoutsFromBoard(settings: PoolSettings, board: Scoreboard): Pay
       ordinal: w.ref.ordinal,
       complete: w.complete,
       winnerIds: w.winnerIds,
+      scores: w.rows.map((r) => ({ userId: r.userId, correct: r.correct })),
     })),
     seasonLeaders(board),
   );

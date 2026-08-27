@@ -1,0 +1,1 @@
+ALTER TABLE "pool_settings" ADD COLUMN "best_week_prize_cents" integer DEFAULT 0 NOT NULL;

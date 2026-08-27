@@ -201,6 +201,11 @@ function BoardRow({
             {`+ ${money(row.seasonCents)}`}
           </div>
         )}
+        {row.bestWeekCents > 0 && (
+          <div style={{ ...MONEY, color: won ? INK_ON : INK }}>
+            {`+ ${money(row.bestWeekCents)}`}
+          </div>
+        )}
       </div>
 
       {/* Track is the leader's score, fill is this member's — the same idiom

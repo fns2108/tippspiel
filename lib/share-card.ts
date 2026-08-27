@@ -28,6 +28,8 @@ export type ShareRow = {
    * else, including for the season winner in every other week.
    */
   seasonCents: number;
+  /** The best-single-week prize, carried on the same picture as the season one. */
+  bestWeekCents: number;
 };
 
 export type ShareGame = {
@@ -116,6 +118,7 @@ export async function loadShareCard(
       leader,
       wonCents: leader ? share : 0,
       seasonCents: settlesSeason ? (payouts.byUser.get(r.userId)?.seasonCents ?? 0) : 0,
+      bestWeekCents: settlesSeason ? (payouts.byUser.get(r.userId)?.bestWeekCents ?? 0) : 0,
     };
   });
 

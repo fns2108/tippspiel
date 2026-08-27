@@ -40,7 +40,7 @@ export function WinningsTable({
         </p>
       </div>
 
-      <dl className="grid grid-cols-2 gap-px border border-rule bg-rule sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-px border border-rule bg-rule sm:grid-cols-3 lg:grid-cols-5">
         <Figure label="Einsatz" value={money(payouts.buyInCents)} sub="pro Person" />
         <Figure
           label="Pro Woche"
@@ -53,6 +53,15 @@ export function WinningsTable({
           sub={payouts.seasonSettled ? "verteilt" : "noch offen"}
         />
         <Figure
+          label="Beste Woche"
+          value={money(payouts.bestWeekPrizeCents)}
+          sub={
+            payouts.bestWeekCorrect > 0
+              ? `${payouts.bestWeekCorrect} richtig${payouts.seasonSettled ? "" : " — bisher"}`
+              : "noch offen"
+          }
+        />
+        <Figure
           label="Noch zu holen"
           value={money(payouts.pendingCents)}
           sub={payouts.pendingCents === 0 ? "alles verteilt" : "offene Wochen"}
@@ -60,7 +69,7 @@ export function WinningsTable({
       </dl>
 
       <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-        <table className="w-full min-w-[32rem] border-collapse text-sm">
+        <table className="w-full min-w-[40rem] border-collapse text-sm">
           <thead>
             <tr className="border-b border-rule text-n1">
               <th scope="col" className="py-2 text-left font-normal">
@@ -76,6 +85,11 @@ export function WinningsTable({
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
                 <span className="label">Saisonpreis</span>
+              </th>
+              <th scope="col" className="py-2 pl-3 text-right font-normal">
+                <span className="label" title="Preis für die meisten richtigen Picks in einer Woche">
+                  Beste Woche
+                </span>
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
                 <span className="label">Gesamt</span>
@@ -105,6 +119,9 @@ export function WinningsTable({
                   <td data-numeric className="py-2 pl-3 text-right font-mono">
                     {r.seasonCents > 0 ? money(r.seasonCents) : <span className="text-n3">—</span>}
                   </td>
+                  <td data-numeric className="py-2 pl-3 text-right font-mono">
+                    {r.bestWeekCents > 0 ? money(r.bestWeekCents) : <span className="text-n3">—</span>}
+                  </td>
                   <td data-numeric className="py-2 pl-3 text-right font-mono font-medium">
                     {money(r.totalCents)}
                   </td>
@@ -128,9 +145,11 @@ export function WinningsTable({
       <p className="max-w-[68ch] text-meta text-n2">
         {payouts.seasonSettled
           ? "Die Saison ist durch — der Topf ist vollständig verteilt."
-          : `Der Saisonpreis (${money(payouts.seasonPrizeCents)}) wird erst nach der letzten ` +
-            "Auszahlungswoche zugeteilt. Cents, die sich nicht gleichmäßig teilen lassen, " +
-            "landen dort und sind schon eingerechnet."}
+          : `Saisonpreis (${money(payouts.seasonPrizeCents)}) und beste Woche ` +
+            `(${money(payouts.bestWeekPrizeCents)}) werden erst nach der letzten ` +
+            "Auszahlungswoche zugeteilt — bis dahin kann der Wochenrekord noch fallen. Cents, " +
+            "die sich nicht gleichmäßig teilen lassen, gehen an den Gesamtsieger und sind " +
+            "schon eingerechnet."}
       </p>
     </section>
   );

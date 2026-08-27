@@ -122,6 +122,7 @@ export async function savePayoutSettingsAction(
 
   const buyIn = parseMoneyToCents(String(formData.get("buyIn") ?? ""));
   const seasonPrize = parseMoneyToCents(String(formData.get("seasonPrize") ?? ""));
+  const bestWeek = parseMoneyToCents(String(formData.get("bestWeekPrize") ?? ""));
   const includePlayoffs = formData.get("includePlayoffs") === "on";
 
   if (buyIn === null) {
@@ -130,17 +131,24 @@ export async function savePayoutSettingsAction(
   if (seasonPrize === null) {
     return { error: "Der Saisonpreis muss ein Betrag sein, z. B. 50 oder 12,50.", notice: null };
   }
+  if (bestWeek === null) {
+    return {
+      error: "Der Preis für die beste Woche muss ein Betrag sein, z. B. 20 oder 12,50.",
+      notice: null,
+    };
+  }
 
   const season = currentSeason();
   const [{ players }] = await db
     .select({ players: sql<number>`count(*)::int` })
     .from(users);
 
-  if (seasonPrize > buyIn * players) {
+  const pot = buyIn * players;
+  if (seasonPrize + bestWeek > pot) {
     return {
       error:
-        `Der Saisonpreis ist größer als der Topf (${money(buyIn * players)} bei ` +
-        `${players} ${players === 1 ? "Mitglied" : "Mitgliedern"}).`,
+        `Saisonpreis und beste Woche zusammen (${money(seasonPrize + bestWeek)}) sind größer ` +
+        `als der Topf (${money(pot)} bei ${players} ${players === 1 ? "Mitglied" : "Mitgliedern"}).`,
       notice: null,
     };
   }
@@ -148,6 +156,7 @@ export async function savePayoutSettingsAction(
   await savePoolSettings(season, {
     buyInCents: buyIn,
     seasonPrizeCents: seasonPrize,
+    bestWeekPrizeCents: bestWeek,
     includePlayoffs,
   });
 
@@ -160,6 +169,7 @@ export async function savePayoutSettingsAction(
     notice:
       buyIn === 0
         ? "Auszahlungen sind aus. Es taucht nirgends Geld auf."
-        : `Gespeichert: ${money(buyIn)} pro Person, ${money(seasonPrize)} für die Gesamtwertung.`,
+        : `Gespeichert: ${money(buyIn)} pro Person, ${money(seasonPrize)} für die Gesamtwertung, ` +
+          `${money(bestWeek)} für die beste Woche.`,
   };
 }

@@ -41,6 +41,7 @@ function demoCard(final = false): ShareCard {
       leader,
       wonCents: leader ? share : 0,
       seasonCents: username === "Finn" ? seasonPrizeCents : 0,
+      bestWeekCents: final && username === "Marie" ? 2000 : 0,
     };
   });
 

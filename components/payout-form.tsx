@@ -25,11 +25,13 @@ function Submit() {
 export function PayoutForm({
   buyInCents,
   seasonPrizeCents,
+  bestWeekPrizeCents,
   includePlayoffs,
   summary,
 }: {
   buyInCents: number;
   seasonPrizeCents: number;
+  bestWeekPrizeCents: number;
   includePlayoffs: boolean;
   summary: React.ReactNode;
 }) {
@@ -43,10 +45,10 @@ export function PayoutForm({
 
   return (
     <form action={action} className="space-y-3 border border-rule px-3 py-3">
-      <div className="grid gap-3 sm:grid-cols-[10rem_10rem_1fr]">
+      <div className="grid gap-3 sm:grid-cols-[9rem_9rem_9rem_1fr]">
         <div>
           <label htmlFor="p-buyin" className="label mb-1.5 block">
-            Einsatz pro Person
+            Einsatz
           </label>
           <input
             id="p-buyin"
@@ -59,7 +61,7 @@ export function PayoutForm({
             className="input tabular-nums"
           />
           <p id="p-buyin-hint" className="mt-1.5 text-meta text-n1">
-            Leer oder 0 schaltet Auszahlungen aus.
+            Pro Person. Leer oder 0 schaltet Auszahlungen aus.
           </p>
         </div>
 
@@ -79,6 +81,25 @@ export function PayoutForm({
           />
           <p id="p-season-hint" className="mt-1.5 text-meta text-n1">
             Kommt vom Topf weg, bevor die Wochen geteilt werden.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="p-best" className="label mb-1.5 block">
+            Beste Woche
+          </label>
+          <input
+            id="p-best"
+            name="bestWeekPrize"
+            defaultValue={asAmount(bestWeekPrizeCents)}
+            placeholder="20,00"
+            inputMode="decimal"
+            autoComplete="off"
+            aria-describedby="p-best-hint"
+            className="input tabular-nums"
+          />
+          <p id="p-best-hint" className="mt-1.5 text-meta text-n1">
+            Für die meisten richtigen Picks in einer einzelnen Woche.
           </p>
         </div>
 
@@ -127,6 +148,7 @@ export function PayoutSummary({
   weeks,
   weeklyPrizeCents,
   seasonPrizeCents,
+  bestWeekPrizeCents,
   enabled,
 }: {
   players: number;
@@ -134,6 +156,7 @@ export function PayoutSummary({
   weeks: number;
   weeklyPrizeCents: number;
   seasonPrizeCents: number;
+  bestWeekPrizeCents: number;
   enabled: boolean;
 }) {
   if (!enabled) {
@@ -161,6 +184,12 @@ export function PayoutSummary({
         <dt className="label">Gesamtsieger</dt>
         <dd data-numeric className="font-mono font-medium">
           {money(seasonPrizeCents)}
+        </dd>
+      </span>
+      <span className="flex items-baseline gap-1.5">
+        <dt className="label">Beste Woche</dt>
+        <dd data-numeric className="font-mono font-medium">
+          {money(bestWeekPrizeCents)}
         </dd>
       </span>
     </dl>

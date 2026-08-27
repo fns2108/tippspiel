@@ -3,10 +3,10 @@ import { weekRef } from "@/lib/nfl/season";
 /**
  * Who is owed what.
  *
- * The pool is one pot: every member's buy-in goes in, a fixed prize is set
- * aside for whoever finishes the season on top, and what remains is divided
- * equally across the payout weeks. Winning a week pays its share; tying a week
- * splits it.
+ * The pool is one pot: every member's buy-in goes in, two fixed prizes are set
+ * aside — one for whoever finishes the season on top, one for the best single
+ * week anybody manages — and what remains is divided equally across the payout
+ * weeks. Winning a week pays its share; tying a week splits it.
  *
  * Two rules keep the arithmetic honest, and everything else follows from them:
  *
@@ -26,12 +26,14 @@ import { weekRef } from "@/lib/nfl/season";
 export type PoolSettings = {
   buyInCents: number;
   seasonPrizeCents: number;
+  bestWeekPrizeCents: number;
   includePlayoffs: boolean;
 };
 
 export const NO_POOL: PoolSettings = {
   buyInCents: 0,
   seasonPrizeCents: 0,
+  bestWeekPrizeCents: 0,
   includePlayoffs: false,
 };
 
@@ -46,6 +48,11 @@ export type PayoutWeek = {
   complete: boolean;
   /** May hold several ids: a tied week is shared. Empty if nobody scored. */
   winnerIds: string[];
+  /**
+   * Every member's correct count for this week. Only the best-week prize needs
+   * it — the weekly prize is settled by `winnerIds` alone.
+   */
+  scores: { userId: string; correct: number }[];
 };
 
 export type MemberWinnings = {
@@ -55,6 +62,8 @@ export type MemberWinnings = {
   weeklyCents: number;
   /** The overall prize, awarded only once the season's payout weeks are done. */
   seasonCents: number;
+  /** The best-single-week prize, on the same timing as the overall prize. */
+  bestWeekCents: number;
   totalCents: number;
   /** Winnings minus what they paid in. */
   netCents: number;
@@ -79,6 +88,12 @@ export type Payouts = {
    * and the odd cents from tied weeks. Only settled at the end of the season.
    */
   seasonPrizeCents: number;
+  /** Set aside for the best single week. Fixed by the settings. */
+  bestWeekPrizeCents: number;
+  /** The score that won it, or 0 while no payout week has finished. */
+  bestWeekCorrect: number;
+  /** Everyone who reached that score in a payout week; empty until settled. */
+  bestWeekWinnerIds: string[];
   /** True once every payout week is complete and the overall prize is settled. */
   seasonSettled: boolean;
   /** Members tied at the top of the season table; empty until settled. */
@@ -116,6 +131,7 @@ export function computePayouts(
         weeksWon: 0,
         weeklyCents: 0,
         seasonCents: 0,
+        bestWeekCents: 0,
         totalCents: 0,
         netCents: enabled ? -settings.buyInCents : 0,
       },
@@ -138,6 +154,9 @@ export function computePayouts(
       weeklyPrizeCents: 0,
       seasonPrizeFloorCents: 0,
       seasonPrizeCents: 0,
+      bestWeekPrizeCents: 0,
+      bestWeekCorrect: 0,
+      bestWeekWinnerIds: [],
       seasonSettled: false,
       seasonWinnerIds: [],
       pendingCents: 0,
@@ -145,10 +164,15 @@ export function computePayouts(
     };
   }
 
-  // The overall prize cannot exceed the pot; a misconfigured season pays
-  // nothing weekly rather than going negative.
+  // Neither prize, nor the two together, can exceed the pot; a misconfigured
+  // season pays nothing weekly rather than going negative. The overall prize is
+  // taken first, so a best-week prize set too high is the one that gets clipped.
   const seasonBase = Math.min(Math.max(0, settings.seasonPrizeCents), potCents);
-  const weeklyPool = potCents - seasonBase;
+  const bestWeekPrizeCents = Math.min(
+    Math.max(0, settings.bestWeekPrizeCents),
+    potCents - seasonBase,
+  );
+  const weeklyPool = potCents - seasonBase - bestWeekPrizeCents;
   const weeklyPrizeCents = Math.floor(weeklyPool / payoutWeeks.length);
 
   // Rule 2 starts here: whatever the weeks cannot divide is already the
@@ -182,7 +206,43 @@ export function computePayouts(
     }
   }
 
+  /**
+   * The best single week anyone managed, counted in raw correct picks.
+   *
+   * Only payout weeks are eligible: a week that pays nothing should not be able
+   * to win the season's biggest single prize. Raw count also means the long
+   * sixteen-game weeks are where this is realistically won — a two-game playoff
+   * round cannot beat them, which is the intended reading of "best week".
+   */
+  let bestWeekCorrect = 0;
+  const bestWeekIds = new Set<string>();
+  for (const week of inScope) {
+    if (!week.complete) continue;
+    for (const score of week.scores) {
+      if (!byUser.has(score.userId) || score.correct === 0) continue;
+      if (score.correct > bestWeekCorrect) {
+        bestWeekCorrect = score.correct;
+        bestWeekIds.clear();
+      }
+      // A member who hits the mark twice still only shares it once.
+      if (score.correct === bestWeekCorrect) bestWeekIds.add(score.userId);
+    }
+  }
+
   const seasonSettled = inScope.every((w) => w.complete);
+  // Paid on the same timing as the overall prize: a record can still be broken
+  // while any payout week is outstanding.
+  const bestWeekWinnerIds = seasonSettled ? [...bestWeekIds] : [];
+  if (bestWeekWinnerIds.length > 0 && bestWeekPrizeCents > 0) {
+    const share = Math.floor(bestWeekPrizeCents / bestWeekWinnerIds.length);
+    unsplittable += bestWeekPrizeCents - share * bestWeekWinnerIds.length;
+    for (const id of bestWeekWinnerIds) byUser.get(id)!.bestWeekCents = share;
+  } else {
+    // Nobody eligible — the money joins the overall winner's, like a week
+    // nobody won.
+    unsplittable += bestWeekPrizeCents;
+  }
+
   const seasonPrizeCents = seasonBase + unsplittable;
   const seasonWinnerIds = seasonSettled ? seasonLeaderIds.filter((id) => byUser.has(id)) : [];
 
@@ -199,7 +259,7 @@ export function computePayouts(
   }
 
   for (const row of byUser.values()) {
-    row.totalCents = row.weeklyCents + row.seasonCents;
+    row.totalCents = row.weeklyCents + row.seasonCents + row.bestWeekCents;
     row.netCents = row.totalCents - settings.buyInCents;
   }
 
@@ -212,6 +272,9 @@ export function computePayouts(
     weeklyPrizeCents,
     seasonPrizeFloorCents,
     seasonPrizeCents,
+    bestWeekPrizeCents,
+    bestWeekCorrect,
+    bestWeekWinnerIds,
     seasonSettled,
     seasonWinnerIds,
     pendingCents,

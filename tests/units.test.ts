@@ -188,6 +188,8 @@ describe("payouts", () => {
     ordinal,
     complete,
     winnerIds,
+    // Enough to make the winners plausible; the best-week tests set their own.
+    scores: members.map((userId) => ({ userId, correct: winnerIds.includes(userId) ? 9 : 5 })),
   });
   /** Every regular week loaded, so the pot has something to divide across. */
   const regular = (winners: (string[] | null)[]) =>
@@ -195,7 +197,7 @@ describe("payouts", () => {
 
   it("divides the pot into a season prize and equal weekly shares", () => {
     const p = computePayouts(
-      { buyInCents: 2000, seasonPrizeCents: 2000, includePlayoffs: false },
+      { buyInCents: 2000, seasonPrizeCents: 2000, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       regular(Array.from({ length: 18 }, () => null)),
       [],
@@ -210,7 +212,7 @@ describe("payouts", () => {
   it("splits a tied week and keeps the odd cent in the pot", () => {
     const weeks = regular([["a", "b"], ...Array.from({ length: 17 }, () => null)]);
     const p = computePayouts(
-      { buyInCents: 2000, seasonPrizeCents: 2000, includePlayoffs: false },
+      { buyInCents: 2000, seasonPrizeCents: 2000, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       weeks,
       [],
@@ -228,7 +230,7 @@ describe("payouts", () => {
       i === 5 ? [] : i % 3 === 0 ? ["a", "b"] : [members[i % 4]],
     );
     const p = computePayouts(
-      { buyInCents: 2500, seasonPrizeCents: 3000, includePlayoffs: false },
+      { buyInCents: 2500, seasonPrizeCents: 3000, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       regular(winners),
       ["a"],
@@ -243,8 +245,8 @@ describe("payouts", () => {
 
   it("counts playoff weeks only when the toggle says so", () => {
     const weeks = [...regular(Array.from({ length: 18 }, () => null)), week(19, []), week(22, [])];
-    const off = computePayouts({ buyInCents: 1000, seasonPrizeCents: 0, includePlayoffs: false }, members, weeks, []);
-    const on = computePayouts({ buyInCents: 1000, seasonPrizeCents: 0, includePlayoffs: true }, members, weeks, []);
+    const off = computePayouts({ buyInCents: 1000, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: false }, members, weeks, []);
+    const on = computePayouts({ buyInCents: 1000, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: true }, members, weeks, []);
     assert.equal(off.payoutWeeks.length, 18);
     assert.equal(on.payoutWeeks.length, 20);
     assert.ok(on.weeklyPrizeCents < off.weeklyPrizeCents, "the same pot spread wider pays less");
@@ -252,7 +254,7 @@ describe("payouts", () => {
 
   it("stays switched off when nobody paid in", () => {
     const p = computePayouts(
-      { buyInCents: 0, seasonPrizeCents: 0, includePlayoffs: false },
+      { buyInCents: 0, seasonPrizeCents: 0, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       regular([["a"]]),
       ["a"],
@@ -264,13 +266,86 @@ describe("payouts", () => {
 
   it("refuses to pay a season prize larger than the pot", () => {
     const p = computePayouts(
-      { buyInCents: 500, seasonPrizeCents: 100000, includePlayoffs: false },
+      { buyInCents: 500, seasonPrizeCents: 100000, bestWeekPrizeCents: 0, includePlayoffs: false },
       members,
       regular(Array.from({ length: 18 }, () => null)),
       [],
     );
     assert.equal(p.weeklyPrizeCents, 0);
     assert.equal(p.seasonPrizeCents, p.potCents);
+  });
+
+  it("pays the best single week, and only once the season is settled", () => {
+    // Marie's 14 in week 2 is the season's high; Finn peaks at 12.
+    const scoreWeek = (ordinal: number, best: string, correct: number, complete = true) => ({
+      ordinal,
+      complete,
+      winnerIds: [best],
+      scores: [
+        { userId: best, correct },
+        ...members.filter((m) => m !== best).map((userId) => ({ userId, correct: correct - 3 })),
+      ],
+    });
+
+    const played = [
+      scoreWeek(1, "a", 12),
+      scoreWeek(2, "b", 14),
+      ...Array.from({ length: 16 }, (_, i) => scoreWeek(i + 3, "c", 10)),
+    ];
+
+    const settings = {
+      buyInCents: 2500,
+      seasonPrizeCents: 2000,
+      bestWeekPrizeCents: 2000,
+      includePlayoffs: false,
+    };
+
+    const done = computePayouts(settings, members, played, ["a"]);
+    assert.equal(done.bestWeekCorrect, 14);
+    assert.deepEqual(done.bestWeekWinnerIds, ["b"]);
+    assert.equal(done.byUser.get("b")!.bestWeekCents, 2000);
+    assert.equal(done.byUser.get("a")!.bestWeekCents, 0);
+
+    // With one week outstanding the record could still be beaten, so nothing pays.
+    const open = computePayouts(settings, members, [...played.slice(0, 17), scoreWeek(18, "c", 10, false)], ["a"]);
+    assert.equal(open.bestWeekWinnerIds.length, 0);
+    assert.equal(open.byUser.get("b")!.bestWeekCents, 0);
+  });
+
+  it("shares the best week when two members reach the same high", () => {
+    const tiedWeek = (ordinal: number, correct: Record<string, number>) => ({
+      ordinal,
+      complete: true,
+      winnerIds: ["a"],
+      scores: members.map((userId) => ({ userId, correct: correct[userId] ?? 4 })),
+    });
+    const played = [
+      tiedWeek(1, { a: 13, b: 13 }),
+      ...Array.from({ length: 17 }, (_, i) => tiedWeek(i + 2, { a: 9 })),
+    ];
+    const p = computePayouts(
+      { buyInCents: 2500, seasonPrizeCents: 2000, bestWeekPrizeCents: 501, includePlayoffs: false },
+      members,
+      played,
+      ["a"],
+    );
+    assert.deepEqual(p.bestWeekWinnerIds.sort(), ["a", "b"]);
+    // 501 split two ways is 250 each; the stray cent joins the overall prize.
+    assert.equal(p.byUser.get("a")!.bestWeekCents, 250);
+    assert.equal(p.byUser.get("b")!.bestWeekCents, 250);
+    const paid = [...p.byUser.values()].reduce((sum, r) => sum + r.totalCents, 0);
+    assert.equal(paid, p.potCents, "every cent is still allocated");
+  });
+
+  it("clips a best-week prize that would overrun the pot", () => {
+    const p = computePayouts(
+      { buyInCents: 500, seasonPrizeCents: 1500, bestWeekPrizeCents: 99999, includePlayoffs: false },
+      members,
+      regular(Array.from({ length: 18 }, () => null)),
+      [],
+    );
+    assert.equal(p.weeklyPrizeCents, 0);
+    assert.equal(p.bestWeekPrizeCents, p.potCents - 1500);
   });
 
   it("reads and writes amounts the way a person types them", () => {

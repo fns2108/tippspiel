@@ -195,8 +195,33 @@ export const syncState = pgTable("sync_state", {
   lastError: text("last_error"),
 });
 
+/* --------------------------------------------------------------- money */
+
+/**
+ * What the pool costs and what it pays, for one season.
+ *
+ * Amounts are integer cents, never floats: a pot split across 18 weeks and
+ * then across tied winners is exactly the arithmetic that turns 0.1 + 0.2 into
+ * a member being owed 4.199999999999999 euro. Every cent that cannot be split
+ * evenly goes to the overall season winner, so the pot always balances.
+ *
+ * A missing row, or a buy-in of zero, means this pool is played for nothing —
+ * and then no money appears anywhere in the interface.
+ */
+export const poolSettings = pgTable("pool_settings", {
+  season: integer("season").primaryKey(),
+  /** What each member paid in. */
+  buyInCents: integer("buy_in_cents").notNull().default(0),
+  /** Taken off the top for the overall winner; the rest is split by week. */
+  seasonPrizeCents: integer("season_prize_cents").notNull().default(0),
+  /** Whether Wild Card through Super Bowl are payout weeks too. */
+  includePlayoffs: boolean("include_playoffs").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Game = typeof games.$inferSelect;
 export type Pick = typeof picks.$inferSelect;
 export type InviteKey = typeof inviteKeys.$inferSelect;
+export type PoolSettingsRow = typeof poolSettings.$inferSelect;

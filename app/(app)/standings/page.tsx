@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TeamConsensus } from "@/components/team-consensus";
+import { WinningsTable } from "@/components/winnings-table";
 import { requireUser } from "@/lib/auth";
 import { pct } from "@/lib/format";
 import { currentSeason } from "@/lib/nfl/season";
+import { getPoolSettings, payoutsFromBoard } from "@/lib/pool";
 import { getScoreboard, getTeamConsensus, type Scoreboard } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -13,10 +15,12 @@ export default async function StandingsPage() {
   const user = await requireUser();
   const season = currentSeason();
 
-  const [board, consensus] = await Promise.all([
+  const [board, consensus, settings] = await Promise.all([
     getScoreboard(season),
     getTeamConsensus(season),
+    getPoolSettings(season),
   ]);
+  const payouts = payoutsFromBoard(settings, board);
 
   const playedWeeks = board.weeks.filter((w) => w.started);
   const hasResults = board.season.some((s) => s.decided > 0);
@@ -47,6 +51,7 @@ export default async function StandingsPage() {
       ) : (
         <>
           <SeasonTable board={board} meId={user.id} />
+          <WinningsTable payouts={payouts} members={board.members} meId={user.id} />
           <WeeklyLedger board={board} meId={user.id} season={season} />
           <TeamConsensus
             rows={consensus}

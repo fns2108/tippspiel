@@ -3,13 +3,15 @@ import { headers } from "next/headers";
 import { desc, eq } from "drizzle-orm";
 import { overrideResultAction, resyncWeekAction, revokeInviteKeyAction } from "@/app/actions/admin";
 import { CopyKey, InviteKeyForm } from "@/components/invite-key-form";
+import { PayoutForm, PayoutSummary } from "@/components/payout-form";
 import { RefreshIcon } from "@/components/icons";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { games, inviteKeys, syncState, users } from "@/lib/db/schema";
 import { SERVER_TZ, formatDate, formatDayAndTime } from "@/lib/format";
 import { allWeekRefs, currentSeason, weekRef } from "@/lib/nfl/season";
-import { getCurrentWeekOrdinal, getWeekGames } from "@/lib/queries";
+import { getPoolSettings, payoutsFromBoard } from "@/lib/pool";
+import { getCurrentWeekOrdinal, getScoreboard, getWeekGames } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Admin" };
@@ -23,12 +25,16 @@ export default async function AdminPage() {
   const proto = h.get("x-forwarded-proto") ?? "http";
   const origin = `${proto}://${h.get("host") ?? "localhost:3000"}`;
 
-  const [keys, members, weekGames, syncRows] = await Promise.all([
+  const [keys, members, weekGames, syncRows, settings, board] = await Promise.all([
     db.select().from(inviteKeys).orderBy(desc(inviteKeys.createdAt)),
     db.select({ id: users.id, username: users.username, isAdmin: users.isAdmin, createdAt: users.createdAt }).from(users).orderBy(users.usernameLower),
     getWeekGames(season, ordinal),
     db.select().from(syncState).orderBy(desc(syncState.lastSyncedAt)).limit(6),
+    getPoolSettings(season),
+    getScoreboard(season),
   ]);
+
+  const payouts = payoutsFromBoard(settings, board);
 
   const failing = syncRows.filter((r) => r.lastError);
 
@@ -131,6 +137,34 @@ export default async function AdminPage() {
             </table>
           </div>
         )}
+      </section>
+
+      <section aria-labelledby="payouts" className="space-y-3">
+        <div className="rule-head">
+          <h2 id="payouts">Auszahlungen</h2>
+          <p className="label">Saison {season}</p>
+        </div>
+        <p className="max-w-[60ch] text-sm text-n1">
+          Alle Einsätze bilden einen Topf. Der Gesamtsieger bekommt seinen Anteil vorweg, der
+          Rest wird gleichmäßig auf die Auszahlungswochen verteilt. Wer eine Woche gewinnt,
+          bekommt ihren Anteil; bei Gleichstand wird geteilt. Cents, die nicht aufgehen, gehen
+          an den Gesamtsieger — so bleibt der Topf am Ende genau aufgeteilt.
+        </p>
+        <PayoutForm
+          buyInCents={settings.buyInCents}
+          seasonPrizeCents={settings.seasonPrizeCents}
+          includePlayoffs={settings.includePlayoffs}
+          summary={
+            <PayoutSummary
+              enabled={payouts.enabled}
+              players={payouts.players}
+              potCents={payouts.potCents}
+              weeks={payouts.payoutWeeks.length}
+              weeklyPrizeCents={payouts.weeklyPrizeCents}
+              seasonPrizeCents={payouts.seasonPrizeFloorCents}
+            />
+          }
+        />
       </section>
 
       <section aria-labelledby="data" className="space-y-3">

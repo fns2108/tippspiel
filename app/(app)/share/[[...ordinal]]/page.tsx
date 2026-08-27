@@ -62,31 +62,24 @@ export default async function SharePage({ params }: { params: Promise<Params> })
 
       <WeekRail weeks={rail} current={ordinal} hrefBase="/share" />
 
-      {!card.started ? (
-        <p className="border border-rule bg-panel px-4 py-8 text-center text-sm text-n1">
-          In {card.ref.label} wurde noch nichts angepfiffen. Es gibt noch nichts zu teilen —
-          wähl oben eine gespielte Woche.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {!card.complete && (
-            <p className="border border-rule bg-panel px-3 py-2.5 text-sm text-n1">
-              Diese Woche läuft noch. Das Bild zeigt den Stand von jetzt, nicht den Endstand.
-            </p>
-          )}
-
-          <ShareImage
-            src={`/api/share/${season}/${ordinal}`}
-            filename={`tippspiel-${slug(card.ref.label)}-${season}.png`}
-            title={`Tippspiel Wedel — ${card.ref.label}`}
-          />
-
-          <p className="max-w-[34rem] text-meta text-n2">
-            Im Bild: die Tabelle der Woche, alle Ergebnisse und die Top&nbsp;3 der Saison. Es
-            wird immer auf hellem Grund gezeichnet, damit es bei allen gleich aussieht.
+      <div className="space-y-4">
+        {!card.complete && card.started && (
+          <p className="border border-rule bg-panel px-3 py-2.5 text-sm text-n1">
+            Diese Woche läuft noch. Das Bild zeigt den Stand von jetzt, nicht den Endstand.
           </p>
-        </div>
-      )}
+        )}
+
+        <ShareImage
+          src={`/api/share/${season}/${ordinal}`}
+          filename={`tippspiel-${slug(card.ref.label)}-${season}.png`}
+          title={`Tippspiel Wedel — ${card.ref.label}`}
+        />
+
+        <p className="max-w-[34rem] text-meta text-n2">
+          Im Bild: die Tabelle der Woche, alle Ergebnisse und die Top&nbsp;3 der Saison. Es
+          wird immer auf hellem Grund gezeichnet, damit es bei allen gleich aussieht.
+        </p>
+      </div>
     </div>
   );
 }

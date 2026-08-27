@@ -20,10 +20,24 @@ function demoCard(): ShareCard {
   const names = ["Finn", "Jonas", "Marie", "Hendrik", "Lena", "Ben", "Sofia", "Til"];
   const scores = [11, 11, 10, 9, 9, 8, 6, 5];
 
+  // 8 × 20,00 = 160,00 pot, 40,00 off the top, 120,00 over 18 weeks = 6,66 a
+  // week with 12 cents left over. Two winners here, so 3,33 each.
+  const weeklyPrizeCents = 666;
+  const winners = scores.filter((s) => s === scores[0]).length;
+  const share = Math.floor(weeklyPrizeCents / winners);
+
   let rank = 0;
   const rows = names.map((username, i) => {
     if (i === 0 || scores[i] !== scores[i - 1]) rank = i + 1;
-    return { rank, username, correct: scores[i], decided: 13, leader: scores[i] === scores[0] };
+    const leader = scores[i] === scores[0];
+    return {
+      rank,
+      username,
+      correct: scores[i],
+      decided: 13,
+      leader,
+      wonCents: leader ? share : 0,
+    };
   });
 
   const fixtures: [string, string, number, number, string, string][] = [
@@ -69,6 +83,9 @@ function demoCard(): ShareCard {
       { username: "Marie", correct: 46 },
       { username: "Jonas", correct: 45 },
     ],
+    potCents: 16000,
+    weeklyPrizeCents,
+    seasonPrizeCents: 4012,
   };
 }
 

@@ -5,7 +5,6 @@ import { clearPick, setPick } from "@/app/actions/picks";
 import { CheckIcon, CrossIcon, LockIcon } from "@/components/icons";
 import { LocalTime } from "@/components/local-time";
 import { TeamLogo } from "@/components/team-logo";
-import { formatSpread } from "@/lib/format";
 import { teamColorVars } from "@/lib/nfl/colors";
 
 export type TeamCard = {
@@ -30,7 +29,6 @@ export type GameCard = {
   awayScore: number | null;
   winnerTeamId: string | null;
   isTie: boolean;
-  spread: number | null;
   locked: boolean;
   home: TeamCard;
   away: TeamCard;
@@ -58,9 +56,6 @@ function TeamSide({
   const isHome = side === "home";
   const score = isHome ? game.homeScore : game.awayScore;
   const showScore = game.status !== "pre" && score !== null;
-
-  // Home-relative spread, flipped for the away side.
-  const sideSpread = game.spread === null ? null : isHome ? game.spread : -game.spread;
 
   const final = game.status === "post";
   const won = final && game.winnerTeamId === team.id;
@@ -101,18 +96,8 @@ function TeamSide({
       />
 
       <span className={`flex min-w-0 flex-1 flex-col ${isHome ? "items-end" : "items-start"}`}>
-        <span className="flex items-baseline gap-1.5">
-          <span className="text-md font-semibold leading-none tracking-[-0.02em]">
-            {team.abbrev}
-          </span>
-          {sideSpread !== null && !showScore && (
-            <span
-              className={`text-meta tabular-nums ${selected ? "text-ink-on/65" : "text-n2"}`}
-              title={sideSpread < 0 ? "Von den Buchmachern favorisiert" : "Außenseiter"}
-            >
-              {formatSpread(sideSpread)}
-            </span>
-          )}
+        <span className="text-md font-semibold leading-none tracking-[-0.02em]">
+          {team.abbrev}
         </span>
         <span
           className={`w-full truncate text-meta leading-tight ${

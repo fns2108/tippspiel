@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
+import { money } from "@/lib/payouts";
 import type { ShareCard } from "@/lib/share-card";
 
 /**
@@ -28,6 +29,9 @@ const RULE = "#e2e2de";
 const SUNKEN = "#eeeeec";
 
 const FONT_DIR = join(process.cwd(), "assets", "fonts");
+
+/** Both footer lines, so they stay a matched pair. */
+const FOOT = { fontFamily: "JetBrains Mono", fontSize: 26, color: N1 } as const;
 
 /** Read once per warm instance; four files is not worth re-reading per request. */
 let fontsPromise: Promise<
@@ -99,7 +103,8 @@ function measure(card: ShareCard) {
   const results =
     card.games.length > 0 ? 40 + line(21) + 16 + gameRows * GAME_ROW_H : 0;
 
-  const footer = card.seasonTop.length > 0 ? 26 + 2 + line(26) : 0;
+  const footerLines = (card.seasonTop.length > 0 ? 1 : 0) + (card.potCents > 0 ? 1 : 0);
+  const footer = footerLines > 0 ? 26 + 2 + footerLines * line(26) + (footerLines - 1) * 12 : 0;
 
   return { height: PAD * 2 + head + board + results + footer + SLACK, gameRows };
 }
@@ -165,17 +170,33 @@ function BoardRow({
         {row.rank}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          flex: 1,
-          fontSize: 38,
-          fontWeight: won ? 700 : 400,
-          letterSpacing: "-0.01em",
-          overflow: "hidden",
-        }}
-      >
-        {row.username}
+      <div style={{ display: "flex", flex: 1, alignItems: "baseline", overflow: "hidden" }}>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 38,
+            fontWeight: won ? 700 : 400,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {row.username}
+        </div>
+        {/* The money sits against the name rather than in its own column: it
+            belongs to the person, and only winners have any. */}
+        {row.wonCents > 0 && (
+          <div
+            style={{
+              display: "flex",
+              marginLeft: 18,
+              fontFamily: "JetBrains Mono",
+              fontSize: 26,
+              fontWeight: 700,
+              color: won ? INK_ON : INK,
+            }}
+          >
+            {money(row.wonCents)}
+          </div>
+        )}
       </div>
 
       {/* Track is the leader's score, fill is this member's — the same idiom
@@ -363,28 +384,46 @@ export function renderShareCard(
           </div>
         )}
 
-        {card.seasonTop.length > 0 && (
+        {(card.seasonTop.length > 0 || card.potCents > 0) && (
           <div
             style={{
               display: "flex",
-              alignItems: "center",
+              flexDirection: "column",
               marginTop: "auto",
               paddingTop: 26,
               borderTop: `2px solid ${RULE}`,
             }}
           >
-            <Label>Saison</Label>
-            <div
-              style={{
-                display: "flex",
-                marginLeft: 24,
-                fontFamily: "JetBrains Mono",
-                fontSize: 26,
-                color: N1,
-              }}
-            >
-              {card.seasonTop.map((s, i) => `${i + 1}. ${s.username} ${s.correct}`).join("   \u00b7   ")}
-            </div>
+            {card.seasonTop.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <Label>Saison</Label>
+                <div style={{ display: "flex", marginLeft: 24, ...FOOT }}>
+                  {card.seasonTop
+                    .map((s, i) => `${i + 1}. ${s.username} ${s.correct}`)
+                    .join("   \u00b7   ")}
+                </div>
+              </div>
+            )}
+            {card.potCents > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginTop: card.seasonTop.length > 0 ? 12 : 0,
+                }}
+              >
+                <Label>Kasse</Label>
+                <div style={{ display: "flex", marginLeft: 24, ...FOOT }}>
+                  {[
+                    `Topf ${money(card.potCents)}`,
+                    card.weeklyPrizeCents > 0 ? `Woche ${money(card.weeklyPrizeCents)}` : null,
+                    `Gesamtsieger ${money(card.seasonPrizeCents)}`,
+                  ]
+                    .filter(Boolean)
+                    .join("   \u00b7   ")}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

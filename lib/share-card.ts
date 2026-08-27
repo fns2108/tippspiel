@@ -1,6 +1,8 @@
 import "server-only";
 import { teamColors } from "@/lib/nfl/colors";
 import { weekRef, type WeekRef } from "@/lib/nfl/season";
+import { weekShareCents } from "@/lib/payouts";
+import { getPoolSettings, payoutsFromBoard } from "@/lib/pool";
 import { getScoreboard, getWeekGames, type Scoreboard } from "@/lib/queries";
 
 /**
@@ -18,6 +20,8 @@ export type ShareRow = {
   decided: number;
   /** Alone or shared at the top. Only meaningful once the week is complete. */
   leader: boolean;
+  /** What this week pays them, in cents. Zero when the pool plays for nothing. */
+  wonCents: number;
 };
 
 export type ShareGame = {
@@ -44,6 +48,10 @@ export type ShareCard = {
   finalGames: number;
   rows: ShareRow[];
   games: ShareGame[];
+  /** The pot, for the footer line. Zero when the pool plays for nothing. */
+  potCents: number;
+  weeklyPrizeCents: number;
+  seasonPrizeCents: number;
   /** Season table after this week, for the footer line. */
   seasonTop: { username: string; correct: number }[];
 };
@@ -61,16 +69,27 @@ export async function loadShareCard(
   season: number,
   ordinal: number | null,
 ): Promise<ShareCard> {
-  const board = await getScoreboard(season);
+  const [board, settings] = await Promise.all([
+    getScoreboard(season),
+    getPoolSettings(season),
+  ]);
 
   const resolved = ordinal ?? latestPlayed(board) ?? 1;
   const games = await getWeekGames(season, resolved);
+
+  const payouts = payoutsFromBoard(settings, board);
+  const paysThisWeek = payouts.enabled && payouts.payoutWeeks.includes(resolved);
 
   const week = board.weeks.find((w) => w.ref.ordinal === resolved);
   const ref = weekRef(resolved);
 
   // Dense ranking: a tie shares a number and the next member takes the number
   // after it, so "2." never disappears from a card where two people tied first.
+  const winnerIds = week?.winnerIds ?? [];
+  const share = paysThisWeek
+    ? weekShareCents(payouts.weeklyPrizeCents, winnerIds.length)
+    : 0;
+
   const ordered = week?.rows ?? [];
   let rank = 0;
   let previous: number | null = null;
@@ -79,12 +98,14 @@ export async function loadShareCard(
       rank = i + 1;
       previous = r.correct;
     }
+    const leader = winnerIds.includes(r.userId);
     return {
       rank,
       username: r.username,
       correct: r.correct,
       decided: r.decided,
-      leader: week?.winnerIds.includes(r.userId) ?? false,
+      leader,
+      wonCents: leader ? share : 0,
     };
   });
 
@@ -119,6 +140,9 @@ export async function loadShareCard(
       username: s.username,
       correct: s.correct,
     })),
+    potCents: payouts.enabled ? payouts.potCents : 0,
+    weeklyPrizeCents: paysThisWeek ? payouts.weeklyPrizeCents : 0,
+    seasonPrizeCents: payouts.enabled ? payouts.seasonPrizeCents : 0,
   };
 }
 

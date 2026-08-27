@@ -1,13 +1,15 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { games, inviteKeys } from "@/lib/db/schema";
+import { games, inviteKeys, users } from "@/lib/db/schema";
 import { syncWeekIfStale } from "@/lib/espn/sync";
 import { generateInviteCode } from "@/lib/invite";
 import { currentSeason, isValidOrdinal } from "@/lib/nfl/season";
+import { money, parseMoneyToCents } from "@/lib/payouts";
+import { savePoolSettings } from "@/lib/pool";
 
 export type AdminState = { error: string | null; notice: string | null };
 
@@ -103,4 +105,61 @@ export async function overrideResultAction(formData: FormData): Promise<void> {
 
   revalidatePath("/admin");
   revalidatePath("/standings");
+}
+
+/**
+ * Sets what the season costs and what it pays.
+ *
+ * Validated here rather than only in the browser: these three numbers decide
+ * who is owed money, so a hand-rolled POST must not be able to put the pool in
+ * a state the arithmetic cannot honour.
+ */
+export async function savePayoutSettingsAction(
+  _prev: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  await requireAdmin();
+
+  const buyIn = parseMoneyToCents(String(formData.get("buyIn") ?? ""));
+  const seasonPrize = parseMoneyToCents(String(formData.get("seasonPrize") ?? ""));
+  const includePlayoffs = formData.get("includePlayoffs") === "on";
+
+  if (buyIn === null) {
+    return { error: "Der Einsatz muss ein Betrag sein, z. B. 20 oder 12,50.", notice: null };
+  }
+  if (seasonPrize === null) {
+    return { error: "Der Saisonpreis muss ein Betrag sein, z. B. 50 oder 12,50.", notice: null };
+  }
+
+  const season = currentSeason();
+  const [{ players }] = await db
+    .select({ players: sql<number>`count(*)::int` })
+    .from(users);
+
+  if (seasonPrize > buyIn * players) {
+    return {
+      error:
+        `Der Saisonpreis ist größer als der Topf (${money(buyIn * players)} bei ` +
+        `${players} ${players === 1 ? "Mitglied" : "Mitgliedern"}).`,
+      notice: null,
+    };
+  }
+
+  await savePoolSettings(season, {
+    buyInCents: buyIn,
+    seasonPrizeCents: seasonPrize,
+    includePlayoffs,
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/standings");
+  revalidatePath("/share");
+
+  return {
+    error: null,
+    notice:
+      buyIn === 0
+        ? "Auszahlungen sind aus. Es taucht nirgends Geld auf."
+        : `Gespeichert: ${money(buyIn)} pro Person, ${money(seasonPrize)} für die Gesamtwertung.`,
+  };
 }

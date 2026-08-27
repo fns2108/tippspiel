@@ -22,7 +22,6 @@ export function toGameCard(g: GameView): GameCard {
     awayScore: g.awayScore,
     winnerTeamId: g.winnerTeamId,
     isTie: g.isTie,
-    spread: g.spread,
     locked: g.locked,
     home: g.home,
     away: g.away,

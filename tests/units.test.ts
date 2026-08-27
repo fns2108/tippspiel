@@ -4,6 +4,12 @@ import { hashPassword, verifyPassword } from "../lib/password.ts";
 import { generateInviteCode, normalizeInviteCode } from "../lib/invite.ts";
 import { teamColors } from "../lib/nfl/colors.ts";
 import { countdown, describeLine, formatSpread, nflDayLabel, pct } from "../lib/format.ts";
+import {
+  computePayouts,
+  money,
+  parseMoneyToCents,
+  signedMoney,
+} from "../lib/payouts.ts";
 import { currentSeason, isValidOrdinal, toOrdinal, weekRef } from "../lib/nfl/season.ts";
 import { POSTSEASON, REGULAR } from "../lib/espn/client.ts";
 
@@ -173,5 +179,108 @@ describe("formatting", () => {
   it("renders percentages without a leading zero, and copes with none played", () => {
     assert.equal(pct(11, 14), ".786");
     assert.equal(pct(0, 0), "—");
+  });
+});
+
+describe("payouts", () => {
+  const members = ["a", "b", "c", "d"];
+  const week = (ordinal: number, winnerIds: string[], complete = true) => ({
+    ordinal,
+    complete,
+    winnerIds,
+  });
+  /** Every regular week loaded, so the pot has something to divide across. */
+  const regular = (winners: (string[] | null)[]) =>
+    winners.map((w, i) => week(i + 1, w ?? [], w !== null));
+
+  it("divides the pot into a season prize and equal weekly shares", () => {
+    const p = computePayouts(
+      { buyInCents: 2000, seasonPrizeCents: 2000, includePlayoffs: false },
+      members,
+      regular(Array.from({ length: 18 }, () => null)),
+      [],
+    );
+    assert.equal(p.potCents, 8000);
+    // 80,00 pot − 20,00 season = 60,00 over 18 weeks = 3,33 each, 6 cents over.
+    assert.equal(p.weeklyPrizeCents, 333);
+    assert.equal(p.seasonPrizeCents, 2000 + 6);
+    assert.equal(p.pendingCents, 333 * 18);
+  });
+
+  it("splits a tied week and keeps the odd cent in the pot", () => {
+    const weeks = regular([["a", "b"], ...Array.from({ length: 17 }, () => null)]);
+    const p = computePayouts(
+      { buyInCents: 2000, seasonPrizeCents: 2000, includePlayoffs: false },
+      members,
+      weeks,
+      [],
+    );
+    // 333 split two ways is 166 each; the stray cent goes to the season prize.
+    assert.equal(p.byUser.get("a")!.weeklyCents, 166);
+    assert.equal(p.byUser.get("b")!.weeklyCents, 166);
+    assert.equal(p.byUser.get("a")!.weeksWon, 1);
+    assert.equal(p.seasonPrizeCents, 2000 + 6 + 1);
+  });
+
+  it("pays out every cent that was paid in, once the season is done", () => {
+    // A whole season with a spread of outright wins, ties and a blank week.
+    const winners: (string[] | null)[] = Array.from({ length: 18 }, (_, i) =>
+      i === 5 ? [] : i % 3 === 0 ? ["a", "b"] : [members[i % 4]],
+    );
+    const p = computePayouts(
+      { buyInCents: 2500, seasonPrizeCents: 3000, includePlayoffs: false },
+      members,
+      regular(winners),
+      ["a"],
+    );
+    assert.equal(p.seasonSettled, true);
+    assert.equal(p.pendingCents, 0);
+    const paid = [...p.byUser.values()].reduce((sum, r) => sum + r.totalCents, 0);
+    assert.equal(paid, p.potCents, "every cent of the pot is allocated");
+    const net = [...p.byUser.values()].reduce((sum, r) => sum + r.netCents, 0);
+    assert.equal(net, 0, "the pool is zero-sum");
+  });
+
+  it("counts playoff weeks only when the toggle says so", () => {
+    const weeks = [...regular(Array.from({ length: 18 }, () => null)), week(19, []), week(22, [])];
+    const off = computePayouts({ buyInCents: 1000, seasonPrizeCents: 0, includePlayoffs: false }, members, weeks, []);
+    const on = computePayouts({ buyInCents: 1000, seasonPrizeCents: 0, includePlayoffs: true }, members, weeks, []);
+    assert.equal(off.payoutWeeks.length, 18);
+    assert.equal(on.payoutWeeks.length, 20);
+    assert.ok(on.weeklyPrizeCents < off.weeklyPrizeCents, "the same pot spread wider pays less");
+  });
+
+  it("stays switched off when nobody paid in", () => {
+    const p = computePayouts(
+      { buyInCents: 0, seasonPrizeCents: 0, includePlayoffs: false },
+      members,
+      regular([["a"]]),
+      ["a"],
+    );
+    assert.equal(p.enabled, false);
+    assert.equal(p.byUser.get("a")!.totalCents, 0);
+    assert.equal(p.byUser.get("a")!.netCents, 0);
+  });
+
+  it("refuses to pay a season prize larger than the pot", () => {
+    const p = computePayouts(
+      { buyInCents: 500, seasonPrizeCents: 100000, includePlayoffs: false },
+      members,
+      regular(Array.from({ length: 18 }, () => null)),
+      [],
+    );
+    assert.equal(p.weeklyPrizeCents, 0);
+    assert.equal(p.seasonPrizeCents, p.potCents);
+  });
+
+  it("reads and writes amounts the way a person types them", () => {
+    assert.equal(parseMoneyToCents("12,50"), 1250);
+    assert.equal(parseMoneyToCents("12.50"), 1250);
+    assert.equal(parseMoneyToCents(" 20 € "), 2000);
+    assert.equal(parseMoneyToCents(""), 0);
+    assert.equal(parseMoneyToCents("12,505"), null);
+    assert.equal(parseMoneyToCents("zwölf"), null);
+    assert.equal(money(1250), "12,50 €");
+    assert.equal(signedMoney(-750), "−7,50 €");
   });
 });

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { clearPick, clearRank, setPick, setRank } from "@/app/actions/picks";
+import { usePicks } from "@/components/picks-state";
 import { CheckIcon, CrossIcon, LockIcon } from "@/components/icons";
 import { LocalTime } from "@/components/local-time";
 import { TeamLogo } from "@/components/team-logo";
@@ -255,57 +254,24 @@ function RankPicker({
   );
 }
 
-export function PickRow({
-  game,
-  initialPick,
-  initialRank,
-  gameCount,
-  takenRanks,
-  pickedBy,
-}: {
-  game: GameCard;
-  initialPick: string | null;
-  initialRank: number | null;
-  gameCount: number;
-  takenRanks: number[];
-  pickedBy: PickedBy[];
-}) {
-  const [pick, setPickState] = useState<string | null>(initialPick);
-  const [rank, setRankState] = useState<number | null>(initialRank);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+export function PickRow({ game, pickedBy }: { game: GameCard; pickedBy: PickedBy[] }) {
+  // Everything about this row's pick lives in the week's state, because a rank
+  // swap moves two rows at once. See components/picks-state.tsx.
+  const week = usePicks();
+  const mine = week.get(game.id);
+  const pick = mine?.teamId ?? null;
+  const rank = mine?.rank ?? null;
+  const pending = week.pendingFor(game.id);
+  const error = week.errorFor(game.id);
 
   function choose(teamId: string) {
     if (game.locked) return;
-    const previous = pick;
-    // Tapping the current pick clears it, so a game can be left genuinely blank.
-    const next = previous === teamId ? null : teamId;
-
-    setPickState(next);
-    setError(null);
-
-    startTransition(async () => {
-      const result = next === null ? await clearPick(game.id) : await setPick(game.id, next);
-      if (!result.ok) {
-        setPickState(previous);
-        setError(result.error);
-      }
-    });
+    week.choose(game.id, teamId);
   }
 
   function rankAs(next: number | null) {
     if (game.locked) return;
-    const previous = rank;
-    setRankState(next);
-    setError(null);
-
-    startTransition(async () => {
-      const result = next === null ? await clearRank(game.id) : await setRank(game.id, next);
-      if (!result.ok) {
-        setRankState(previous);
-        setError(result.error);
-      }
-    });
+    week.rankAs(game.id, next);
   }
 
   const live = game.status === "in";
@@ -349,8 +315,8 @@ export function PickRow({
           ) : (
             <RankPicker
               value={rank}
-              gameCount={gameCount}
-              taken={takenRanks}
+              gameCount={week.gameCount}
+              taken={week.taken}
               disabled={pick === null}
               pending={pending}
               onChange={rankAs}

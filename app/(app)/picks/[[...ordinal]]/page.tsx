@@ -5,6 +5,7 @@ import { AlertIcon, ClockIcon } from "@/components/icons";
 import { LiveRefresh } from "@/components/live-refresh";
 import { LocalTime } from "@/components/local-time";
 import { PickRow } from "@/components/pick-row";
+import { PicksProvider } from "@/components/picks-state";
 import { WeekRail } from "@/components/week-rail";
 import { requireUser } from "@/lib/auth";
 import { SERVER_TZ, countdown, formatDayAndTime } from "@/lib/format";
@@ -92,8 +93,16 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
             </p>
           ) : null}
 
-          <div className="space-y-7">
-            {view.groups.map((group) => (
+          <PicksProvider
+            gameCount={view.totalGames}
+            initial={[...view.myPicks.entries()].map(([gameId, p]) => ({
+              gameId,
+              teamId: p.teamId,
+              rank: p.rank,
+            }))}
+          >
+            <div className="space-y-7">
+              {view.groups.map((group) => (
               <section key={group.key} aria-labelledby={`day-${group.key}`}>
                 <h2
                   id={`day-${group.key}`}
@@ -109,17 +118,14 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
                     <PickRow
                       key={g.id}
                       game={view.cards.get(g.id)!}
-                      initialPick={view.myPicks.get(g.id)?.teamId ?? null}
-                      initialRank={view.myPicks.get(g.id)?.rank ?? null}
-                      gameCount={view.totalGames}
-                      takenRanks={view.takenRanks}
                       pickedBy={view.pickedByGame.get(g.id) ?? []}
                     />
                   ))}
-                </ul>
-              </section>
-            ))}
-          </div>
+                  </ul>
+                </section>
+              ))}
+            </div>
+          </PicksProvider>
 
           <p className="max-w-[46rem] pt-2 text-meta text-n2">
             Vergib jede Punktzahl von 1 bis {view.totalGames} genau einmal: das Spiel, bei dem du

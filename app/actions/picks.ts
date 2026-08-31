@@ -1,11 +1,12 @@
 "use server";
 
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { games, picks } from "@/lib/db/schema";
-import { PICK_ERROR_MESSAGES, rejectPick, rejectRank } from "@/lib/pick-rules";
+import { PICK_ERROR_MESSAGES, rejectPick } from "@/lib/pick-rules";
+import { applyRank, removeRank } from "@/lib/ranks";
 
 export type PickResult = { ok: true } | { ok: false; error: string };
 
@@ -25,8 +26,15 @@ async function loadGame(gameId: string) {
 }
 
 function touched() {
-  revalidatePath("/picks");
+  /**
+   * The picks page is `/picks/[[...ordinal]]`, so a literal "/picks" only ever
+   * matches the bare url — a member sitting on /picks/5 would keep being served
+   * the cached payload for up to `staleTimes.dynamic`. Revalidating the route
+   * pattern covers every week at once.
+   */
+  revalidatePath("/picks/[[...ordinal]]", "page");
   revalidatePath("/standings");
+  revalidatePath("/week/[season]/[ordinal]", "page");
 }
 
 /**
@@ -88,65 +96,13 @@ export async function setRank(gameId: string, rank: number): Promise<PickResult>
   const rejection = rejectPick(game, null);
   if (rejection) return { ok: false, error: PICK_ERROR_MESSAGES[rejection] };
 
-  return db.transaction(async (tx) => {
-    const week = await tx
-      .select({
-        id: games.id,
-        kickoff: games.kickoff,
-        pickedRank: picks.rank,
-        pickedBy: picks.userId,
-      })
-      .from(games)
-      .leftJoin(picks, and(eq(picks.gameId, games.id), eq(picks.userId, user.id)))
-      .where(
-        and(
-          eq(games.season, game!.season),
-          eq(games.seasonType, game!.seasonType),
-          eq(games.week, game!.week),
-        ),
-      );
-
-    const mine = week.filter((r) => r.pickedBy === user.id);
-    const holder = mine.find((r) => r.pickedRank === rank && r.id !== gameId);
-    const now = new Date();
-
-    const bad = rejectRank(
-      rank,
-      week.length,
-      mine.some((r) => r.id === gameId),
-      holder !== undefined && holder.kickoff.getTime() <= now.getTime(),
-    );
-    if (bad) return { ok: false as const, error: PICK_ERROR_MESSAGES[bad] };
-
-    const previous = mine.find((r) => r.id === gameId)?.pickedRank ?? null;
-
-    // Clear first so the two updates never collide on the same number.
-    if (holder) {
-      await tx
-        .update(picks)
-        .set({ rank: null, updatedAt: now })
-        .where(and(eq(picks.userId, user.id), eq(picks.gameId, holder.id)));
-    }
-
-    await tx
-      .update(picks)
-      .set({ rank, updatedAt: now })
-      .where(and(eq(picks.userId, user.id), eq(picks.gameId, gameId)));
-
-    // The displaced game takes the number this one was carrying, which may be
-    // none — then it simply comes back unranked.
-    if (holder) {
-      await tx
-        .update(picks)
-        .set({ rank: previous, updatedAt: now })
-        .where(and(eq(picks.userId, user.id), eq(picks.gameId, holder.id)));
-    }
-
-    return { ok: true as const };
-  }).then((result) => {
-    if (result.ok) touched();
-    return result;
+  const result = await applyRank(user.id, gameId, rank, {
+    season: game!.season,
+    seasonType: game!.seasonType,
+    week: game!.week,
   });
+  if (result.ok) touched();
+  return result;
 }
 
 /** Takes the number off a game, putting it back in circulation. */
@@ -157,10 +113,7 @@ export async function clearRank(gameId: string): Promise<PickResult> {
   const rejection = rejectPick(await loadGame(gameId), null);
   if (rejection) return { ok: false, error: PICK_ERROR_MESSAGES[rejection] };
 
-  await db
-    .update(picks)
-    .set({ rank: null, updatedAt: new Date() })
-    .where(and(eq(picks.userId, user.id), eq(picks.gameId, gameId)));
+  await removeRank(user.id, gameId);
 
   touched();
   return { ok: true };

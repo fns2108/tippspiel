@@ -50,10 +50,10 @@ export type PayoutWeek = {
   /** May hold several ids: a tied week is shared. Empty if nobody scored. */
   winnerIds: string[];
   /**
-   * Every member's correct count for this week. Only the best-week prize needs
-   * it — the weekly prize is settled by `winnerIds` alone.
+   * Every member's points for this week. Only the best-week prize needs it —
+   * the weekly prize is settled by `winnerIds` alone.
    */
-  scores: { userId: string; correct: number }[];
+  scores: { userId: string; points: number }[];
 };
 
 export type MemberWinnings = {
@@ -98,8 +98,8 @@ export type Payouts = {
   seasonPrizeCents: number;
   /** Set aside for the best single week. Fixed by the settings. */
   bestWeekPrizeCents: number;
-  /** The score that won it, or 0 while no payout week has finished. */
-  bestWeekCorrect: number;
+  /** The points that won it, or 0 while no payout week has finished. */
+  bestWeekPoints: number;
   /** Everyone who reached that score in a payout week; empty until settled. */
   bestWeekWinnerIds: string[];
   /** True once every payout week is complete and the overall prize is settled. */
@@ -166,7 +166,7 @@ export function computePayouts(
       seasonPrizeFloorCents: 0,
       seasonPrizeCents: 0,
       bestWeekPrizeCents: 0,
-      bestWeekCorrect: 0,
+      bestWeekPoints: 0,
       bestWeekWinnerIds: [],
       seasonSettled: false,
       seasonWinnerIds: [],
@@ -218,25 +218,25 @@ export function computePayouts(
   }
 
   /**
-   * The best single week anyone managed, counted in raw correct picks.
+   * The best single week anyone managed, in points.
    *
    * Only payout weeks are eligible: a week that pays nothing should not be able
-   * to win the season's biggest single prize. Raw count also means the long
+   * to win the season's biggest single prize. Points also mean the long
    * sixteen-game weeks are where this is realistically won — a two-game playoff
-   * round cannot beat them, which is the intended reading of "best week".
+   * round tops out at 3, which is the intended reading of "best week".
    */
-  let bestWeekCorrect = 0;
+  let bestWeekPoints = 0;
   const bestWeekIds = new Set<string>();
   for (const week of inScope) {
     if (!week.complete) continue;
     for (const score of week.scores) {
-      if (!byUser.has(score.userId) || score.correct === 0) continue;
-      if (score.correct > bestWeekCorrect) {
-        bestWeekCorrect = score.correct;
+      if (!byUser.has(score.userId) || score.points === 0) continue;
+      if (score.points > bestWeekPoints) {
+        bestWeekPoints = score.points;
         bestWeekIds.clear();
       }
       // A member who hits the mark twice still only shares it once.
-      if (score.correct === bestWeekCorrect) bestWeekIds.add(score.userId);
+      if (score.points === bestWeekPoints) bestWeekIds.add(score.userId);
     }
   }
 
@@ -285,7 +285,7 @@ export function computePayouts(
     seasonPrizeFloorCents,
     seasonPrizeCents,
     bestWeekPrizeCents,
-    bestWeekCorrect,
+    bestWeekPoints,
     bestWeekWinnerIds,
     seasonSettled,
     seasonWinnerIds,

@@ -46,6 +46,7 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
   ]);
 
   const myPickedCount = view.myPicks.size;
+  const openUnranked = view.unranked.length;
 
   return (
     <div className="space-y-5">
@@ -69,13 +70,25 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
         <div className="max-w-[48rem] space-y-5">
           {view.unpicked.length > 0 && view.nextLock ? (
             <OpenPicksBanner count={view.unpicked.length} nextKickoff={view.nextLock.kickoff} />
+          ) : openUnranked > 0 ? (
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 border border-ink bg-panel px-3 py-2.5 text-sm">
+              <span aria-hidden className="text-ink">
+                <AlertIcon />
+              </span>
+              <span className="font-medium">
+                {openUnranked} {openUnranked === 1 ? "Spiel" : "Spiele"} ohne Punkte
+              </span>
+              <span className="text-n1">
+                Ein Spiel ohne Punkte bringt nichts, auch wenn der Tipp stimmt.
+              </span>
+            </p>
           ) : view.openGames.length > 0 ? (
             <p className="flex items-center gap-2 border border-rule bg-panel px-3 py-2.5 text-sm text-n1">
               <span aria-hidden className="text-correct">
                 <ClockIcon />
               </span>
-              Alle {view.totalGames} Spiele getippt. Du kannst alles ändern, was noch nicht
-              angepfiffen ist.
+              Alle {view.totalGames} Spiele getippt und mit Punkten belegt. Du kannst alles
+              ändern, was noch nicht angepfiffen ist.
             </p>
           ) : null}
 
@@ -96,7 +109,10 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
                     <PickRow
                       key={g.id}
                       game={view.cards.get(g.id)!}
-                      initialPick={view.myPicks.get(g.id) ?? null}
+                      initialPick={view.myPicks.get(g.id)?.teamId ?? null}
+                      initialRank={view.myPicks.get(g.id)?.rank ?? null}
+                      gameCount={view.totalGames}
+                      takenRanks={view.takenRanks}
                       pickedBy={view.pickedByGame.get(g.id) ?? []}
                     />
                   ))}
@@ -105,9 +121,11 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
             ))}
           </div>
 
-          <p className="pt-2 text-meta text-n2">
-            Die Picks anderer erscheinen hier, sobald das Spiel angepfiffen ist. Bis dahin
-            siehst nur du deine eigenen.
+          <p className="max-w-[46rem] pt-2 text-meta text-n2">
+            Vergib jede Punktzahl von 1 bis {view.totalGames} genau einmal: das Spiel, bei dem du
+            dir am sichersten bist, bekommt {view.totalGames}. Stimmt der Tipp, gibt es so viele
+            Punkte; stimmt er nicht, keine. Wer am Ende der Woche die meisten Punkte hat, gewinnt
+            sie. Die Picks anderer erscheinen hier, sobald das Spiel angepfiffen ist.
           </p>
         </div>
       )}

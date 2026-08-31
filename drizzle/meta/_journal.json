@@ -29,6 +29,13 @@
       "when": 1787850184582,
       "tag": "0003_rename_buy_in_to_pot",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788192896662,
+      "tag": "0004_pick_confidence_rank",
+      "breakpoints": true
     }
   ]
 }

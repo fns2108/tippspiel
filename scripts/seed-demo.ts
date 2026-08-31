@@ -61,6 +61,8 @@ const season = Number(process.argv[2]) || currentSeason();
 const allGames = await db
   .select({
     id: games.id,
+    seasonType: games.seasonType,
+    week: games.week,
     homeTeamId: games.homeTeamId,
     awayTeamId: games.awayTeamId,
     status: games.status,
@@ -100,26 +102,49 @@ function hash(s: string): number {
   return (h >>> 0) / 4294967296;
 }
 
-const rows: { userId: string; gameId: string; teamId: string }[] = [];
+// Confidence ranks are per week, so the games have to be grouped before any
+// can be handed out.
+const byWeek = new Map<string, typeof allGames>();
+for (const g of allGames) {
+  const key = `${g.seasonType}:${g.week}`;
+  const bucket = byWeek.get(key);
+  if (bucket) bucket.push(g);
+  else byWeek.set(key, [g]);
+}
+
+const rows: { userId: string; gameId: string; teamId: string; rank: number | null }[] = [];
 for (const { name, skill, skips } of CAST) {
   const userId = ids.get(name)!;
-  for (const g of allGames) {
-    if (skips > 0 && hash(`${name}:skip:${g.id}`) < skips) continue;
 
-    // An undecided game has no right answer to aim at, so it is a coin flip.
-    const right = g.winnerTeamId;
-    const roll = hash(`${name}:${g.id}`);
-    const teamId = right
-      ? roll < skill
-        ? right
-        : right === g.homeTeamId
-          ? g.awayTeamId
-          : g.homeTeamId
-      : roll < 0.5
-        ? g.homeTeamId
-        : g.awayTeamId;
+  for (const weekGames of byWeek.values()) {
+    const picked: { gameId: string; teamId: string; confidence: number }[] = [];
 
-    rows.push({ userId, gameId: g.id, teamId });
+    for (const g of weekGames) {
+      if (skips > 0 && hash(`${name}:skip:${g.id}`) < skips) continue;
+
+      // An undecided game has no right answer to aim at, so it is a coin flip.
+      const right = g.winnerTeamId;
+      const roll = hash(`${name}:${g.id}`);
+      const teamId = right
+        ? roll < skill
+          ? right
+          : right === g.homeTeamId
+            ? g.awayTeamId
+            : g.homeTeamId
+        : roll < 0.5
+          ? g.homeTeamId
+          : g.awayTeamId;
+
+      // Sorting by a per-member, per-game number gives every member a
+      // different ordering — which is the whole point of confidence picks.
+      picked.push({ gameId: g.id, teamId, confidence: hash(`${name}:rank:${g.id}`) });
+    }
+
+    // Highest confidence takes the biggest number, 1..n over what they picked.
+    picked.sort((a, b) => a.confidence - b.confidence);
+    picked.forEach((pick, i) => {
+      rows.push({ userId, gameId: pick.gameId, teamId: pick.teamId, rank: i + 1 });
+    });
   }
 }
 
@@ -131,7 +156,7 @@ const decided = allGames.filter((g) => g.winnerTeamId !== null).length;
 console.log(`\nseason ${season}`);
 console.log(`  games       ${allGames.length} (${decided} decided)`);
 console.log(`  members     ${CAST.length}`);
-console.log(`  picks       ${rows.length}`);
+console.log(`  picks       ${rows.length} (each week ranked 1..n)`);
 console.log(`\nSet NFL_SEASON=${season} to make the app show this season.`);
 console.log(`Remove it all again with: npm run seed:demo -- --clear`);
 

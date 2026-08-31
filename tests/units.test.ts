@@ -189,7 +189,7 @@ describe("payouts", () => {
     complete,
     winnerIds,
     // Enough to make the winners plausible; the best-week tests set their own.
-    scores: members.map((userId) => ({ userId, correct: winnerIds.includes(userId) ? 9 : 5 })),
+    scores: members.map((userId) => ({ userId, points: winnerIds.includes(userId) ? 90 : 50 })),
   });
   /** Every regular week loaded, so the pot has something to divide across. */
   const regular = (winners: (string[] | null)[]) =>
@@ -282,8 +282,8 @@ describe("payouts", () => {
       complete,
       winnerIds: [best],
       scores: [
-        { userId: best, correct },
-        ...members.filter((m) => m !== best).map((userId) => ({ userId, correct: correct - 3 })),
+        { userId: best, points: correct },
+        ...members.filter((m) => m !== best).map((userId) => ({ userId, points: correct - 3 })),
       ],
     });
 
@@ -301,7 +301,7 @@ describe("payouts", () => {
     };
 
     const done = computePayouts(settings, members, played, ["a"]);
-    assert.equal(done.bestWeekCorrect, 14);
+    assert.equal(done.bestWeekPoints, 14);
     assert.deepEqual(done.bestWeekWinnerIds, ["b"]);
     assert.equal(done.byUser.get("b")!.bestWeekCents, 2000);
     assert.equal(done.byUser.get("a")!.bestWeekCents, 0);
@@ -317,7 +317,7 @@ describe("payouts", () => {
       ordinal,
       complete: true,
       winnerIds: ["a"],
-      scores: members.map((userId) => ({ userId, correct: correct[userId] ?? 4 })),
+      scores: members.map((userId) => ({ userId, points: correct[userId] ?? 4 })),
     });
     const played = [
       tiedWeek(1, { a: 13, b: 13 }),

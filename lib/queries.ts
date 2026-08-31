@@ -121,19 +121,27 @@ export async function getWeekGames(
 }
 
 /** The signed-in user's own picks. Always visible to them, locked or not. */
+export type MyPick = { teamId: string; rank: number | null };
+
 export async function getMyPicks(
   userId: string,
   gameIds: string[],
-): Promise<Map<string, string>> {
+): Promise<Map<string, MyPick>> {
   if (gameIds.length === 0) return new Map();
   const rows = await db
-    .select({ gameId: picks.gameId, teamId: picks.teamId })
+    .select({ gameId: picks.gameId, teamId: picks.teamId, rank: picks.rank })
     .from(picks)
     .where(and(eq(picks.userId, userId), inArray(picks.gameId, gameIds)));
-  return new Map(rows.map((r) => [r.gameId, r.teamId]));
+  return new Map(rows.map((r) => [r.gameId, { teamId: r.teamId, rank: r.rank }]));
 }
 
-export type VisiblePick = { userId: string; username: string; gameId: string; teamId: string };
+export type VisiblePick = {
+  userId: string;
+  username: string;
+  gameId: string;
+  teamId: string;
+  rank: number | null;
+};
 
 /**
  * Everyone's picks for games that have already kicked off.
@@ -154,6 +162,7 @@ export async function getVisiblePicks(
       username: users.username,
       gameId: picks.gameId,
       teamId: picks.teamId,
+      rank: picks.rank,
     })
     .from(picks)
     .innerJoin(games, eq(games.id, picks.gameId))
@@ -173,6 +182,8 @@ export async function getVisiblePicks(
 export type WeekStanding = {
   userId: string;
   username: string;
+  /** Ranks earned on correct picks — what actually wins the week. */
+  points: number;
   correct: number;
   picked: number;
   decided: number;
@@ -193,13 +204,14 @@ export type WeekSummary = {
 export type SeasonStanding = {
   userId: string;
   username: string;
+  points: number;
   correct: number;
   picked: number;
   decided: number;
   weeklyWins: number;
   /** Shared weekly wins counted separately, for the "won outright" nuance. */
   sharedWins: number;
-  bestWeek: { ordinal: number; correct: number } | null;
+  bestWeek: { ordinal: number; points: number; correct: number } | null;
 };
 
 export type Scoreboard = {
@@ -245,6 +257,9 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
       picked: sql<number>`count(*)::int`,
       decided: sql<number>`count(*) filter (where ${games.status} = 'post')::int`,
       correct: sql<number>`count(*) filter (where ${games.winnerTeamId} = ${picks.teamId})::int`,
+      // An unranked pick is worth nothing, which is what makes ranking the
+      // whole slate the thing you have to do.
+      points: sql<number>`coalesce(sum(${picks.rank}) filter (where ${games.winnerTeamId} = ${picks.teamId}), 0)::int`,
     })
     .from(picks)
     .innerJoin(games, eq(games.id, picks.gameId))
@@ -274,6 +289,7 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
     byUser.set(p.userId, {
       userId: p.userId,
       username: nameById.get(p.userId) ?? "—",
+      points: p.points,
       correct: p.correct,
       picked: p.picked,
       decided: p.decided,
@@ -292,17 +308,23 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
           byUser.get(m.id) ?? {
             userId: m.id,
             username: m.username,
+            points: 0,
             correct: 0,
             picked: 0,
             decided: 0,
           },
       );
-      rows.sort((a, b) => b.correct - a.correct || a.username.localeCompare(b.username));
+      // Points decide the week; correct picks only break a tie on points, and
+      // the name only breaks a tie on both.
+      rows.sort(
+        (a, b) =>
+          b.points - a.points || b.correct - a.correct || a.username.localeCompare(b.username),
+      );
 
       const complete = bucket.total > 0 && bucket.final === bucket.total;
-      const top = rows.length > 0 ? rows[0].correct : 0;
+      const top = rows.length > 0 ? rows[0].points : 0;
       // A week nobody scored in has no winner — otherwise everyone "wins" 0.
-      const winnerIds = complete && top > 0 ? rows.filter((r) => r.correct === top).map((r) => r.userId) : [];
+      const winnerIds = complete && top > 0 ? rows.filter((r) => r.points === top).map((r) => r.userId) : [];
 
       return {
         ref: weekRef(ordinal),
@@ -321,6 +343,7 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
       {
         userId: m.id,
         username: m.username,
+        points: 0,
         correct: 0,
         picked: 0,
         decided: 0,
@@ -335,11 +358,14 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
     for (const row of week.rows) {
       const acc = seasonByUser.get(row.userId);
       if (!acc) continue;
+      acc.points += row.points;
       acc.correct += row.correct;
       acc.picked += row.picked;
       acc.decided += row.decided;
-      if (!acc.bestWeek || row.correct > acc.bestWeek.correct) {
-        if (row.decided > 0) acc.bestWeek = { ordinal: week.ref.ordinal, correct: row.correct };
+      if (!acc.bestWeek || row.points > acc.bestWeek.points) {
+        if (row.decided > 0) {
+          acc.bestWeek = { ordinal: week.ref.ordinal, points: row.points, correct: row.correct };
+        }
       }
     }
     for (const id of week.winnerIds) {
@@ -352,6 +378,7 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
 
   const seasonStandings = [...seasonByUser.values()].sort(
     (a, b) =>
+      b.points - a.points ||
       b.correct - a.correct ||
       b.weeklyWins - a.weeklyWins ||
       a.username.localeCompare(b.username),

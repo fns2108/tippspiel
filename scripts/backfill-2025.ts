@@ -74,7 +74,7 @@ check(
   `${allGames.filter((g) => g.status !== "post").length} not final`,
 );
 
-// A deterministic hash, so re-running produces identical picks.
+// A deterministic hash, so re-running produces identical picks and ranks.
 const hash = (s: string) => {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -104,12 +104,28 @@ function choose(strategy: Strategy, g: (typeof allGames)[number]): string | null
   }
 }
 
-const rows: { userId: string; gameId: string; teamId: string }[] = [];
+// Ranks are 1..n within a week, so the slate has to be grouped first.
+const byWeek = new Map<string, typeof allGames>();
+for (const g of allGames) {
+  const key = `${g.seasonType}:${g.week}`;
+  const bucket = byWeek.get(key);
+  if (bucket) bucket.push(g);
+  else byWeek.set(key, [g]);
+}
+
+const rows: { userId: string; gameId: string; teamId: string; rank: number }[] = [];
 for (const strategy of SYNTHETIC) {
   const userId = memberIds.get(strategy)!;
-  for (const g of allGames) {
-    const teamId = choose(strategy, g);
-    if (teamId) rows.push({ userId, gameId: g.id, teamId });
+  for (const weekGames of byWeek.values()) {
+    const picked = weekGames
+      .map((g) => ({ g, teamId: choose(strategy, g) }))
+      .filter((p): p is { g: (typeof allGames)[number]; teamId: string } => p.teamId !== null)
+      // A deterministic ordering per member, so each ranks the week differently.
+      .sort((a, b) => hash(`${strategy}:rank:${a.g.id}`) - hash(`${strategy}:rank:${b.g.id}`));
+
+    picked.forEach((p, i) => {
+      rows.push({ userId, gameId: p.g.id, teamId: p.teamId, rank: i + 1 });
+    });
   }
 }
 for (let i = 0; i < rows.length; i += 500) {
@@ -120,16 +136,19 @@ console.log(`${rows.length} picks written\n`);
 /* -------------------------------------------------- independent scoring */
 
 // Recompute from raw rows, without going through lib/queries.ts.
-const expectedByUserWeek = new Map<string, { correct: number; picked: number }>();
+const expectedByUserWeek = new Map<string, { correct: number; picked: number; points: number }>();
 const gameById = new Map(allGames.map((g) => [g.id, g]));
 for (const row of rows) {
   const g = gameById.get(row.gameId)!;
   const ordinal = toOrdinal(g.seasonType, g.week);
   if (ordinal === null) continue;
   const key = `${row.userId}:${ordinal}`;
-  const acc = expectedByUserWeek.get(key) ?? { correct: 0, picked: 0 };
+  const acc = expectedByUserWeek.get(key) ?? { correct: 0, picked: 0, points: 0 };
   acc.picked++;
-  if (g.winnerTeamId !== null && g.winnerTeamId === row.teamId) acc.correct++;
+  if (g.winnerTeamId !== null && g.winnerTeamId === row.teamId) {
+    acc.correct++;
+    acc.points += row.rank;
+  }
   expectedByUserWeek.set(key, acc);
 }
 
@@ -142,11 +161,13 @@ const synthetic = new Set(memberIds.values());
 let weekMismatches = 0;
 for (const week of board.weeks) {
   for (const r of week.rows.filter((row) => synthetic.has(row.userId))) {
-    const expected = expectedByUserWeek.get(`${r.userId}:${week.ref.ordinal}`) ?? { correct: 0, picked: 0 };
-    if (expected.correct !== r.correct || expected.picked !== r.picked) {
+    const expected =
+      expectedByUserWeek.get(`${r.userId}:${week.ref.ordinal}`) ?? { correct: 0, picked: 0, points: 0 };
+    if (expected.correct !== r.correct || expected.picked !== r.picked || expected.points !== r.points) {
       weekMismatches++;
       console.log(
-        `      ${r.username} ${week.ref.label}: got ${r.correct}/${r.picked}, expected ${expected.correct}/${expected.picked}`,
+        `      ${r.username} ${week.ref.label}: got ${r.points}pts ${r.correct}/${r.picked}, ` +
+          `expected ${expected.points}pts ${expected.correct}/${expected.picked}`,
       );
     }
   }
@@ -165,10 +186,10 @@ check(
 
 for (const s of board.season.filter((r) => synthetic.has(r.userId))) {
   const summed = board.weeks.reduce(
-    (n, w) => n + (w.rows.find((r) => r.userId === s.userId)?.correct ?? 0),
+    (n, w) => n + (w.rows.find((r) => r.userId === s.userId)?.points ?? 0),
     0,
   );
-  check(summed === s.correct, `${s.username}: season total equals the sum of weeks`, `${s.correct}`);
+  check(summed === s.points, `${s.username}: season points equal the sum of weeks`, `${s.points}`);
 }
 
 const totalWeeklyWins = board.season
@@ -184,9 +205,9 @@ check(
 check(sharedWeeks.length > 0, "the shared-tie path is actually exercised", `${sharedWeeks.length} tied weeks`);
 
 for (const w of sharedWeeks) {
-  const top = Math.max(...w.rows.map((r) => r.correct));
+  const top = Math.max(...w.rows.map((r) => r.points));
   const allTopAreWinners = w.rows
-    .filter((r) => r.correct === top)
+    .filter((r) => r.points === top)
     .every((r) => w.winnerIds.includes(r.userId));
   check(allTopAreWinners, `${w.ref.label}: every member on the top score shares the win`);
 }
@@ -207,11 +228,11 @@ check(coinflip.picked < homer.picked, "a member who skipped games has fewer pick
 /* ------------------------------------------------------------- report */
 
 console.log("\n  2025 season table (synthetic)\n");
-console.log("     name           correct  picked  wkW  best");
+console.log("     name            points  correct  picked  wkW  best");
 for (const [i, s] of board.season.filter((r) => synthetic.has(r.userId)).entries()) {
-  const best = s.bestWeek ? `W${s.bestWeek.ordinal} (${s.bestWeek.correct})` : "—";
+  const best = s.bestWeek ? `W${s.bestWeek.ordinal} (${s.bestWeek.points})` : "—";
   console.log(
-    `  ${String(i + 1).padStart(2)}  ${s.username.padEnd(14)} ${String(s.correct).padStart(7)} ${String(s.picked).padStart(7)} ${String(s.weeklyWins).padStart(4)}  ${best}`,
+    `  ${String(i + 1).padStart(2)}  ${s.username.padEnd(14)} ${String(s.points).padStart(7)} ${String(s.correct).padStart(8)} ${String(s.picked).padStart(7)} ${String(s.weeklyWins).padStart(4)}  ${best}`,
   );
 }
 

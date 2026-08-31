@@ -83,8 +83,8 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
           <div className="edge-fade -mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
             <table className="w-full min-w-max border-collapse text-sm">
               <caption className="sr-only">
-                Die Picks aller Mitglieder für jedes Spiel in {view.ref.label}. Picks erscheinen,
-                sobald ein Spiel angepfiffen ist.
+                Die Picks aller Mitglieder für jedes Spiel in {view.ref.label}, mit den Punkten,
+                die darauf gesetzt sind. Picks erscheinen, sobald ein Spiel angepfiffen ist.
               </caption>
               <thead>
                 <tr className="border-b border-ink">
@@ -113,7 +113,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
               <tbody>
                 {allGames.map((g) => {
                   const picks = view.pickedByGame.get(g.id) ?? [];
-                  const byUser = new Map(picks.map((p) => [p.userId, p.teamId]));
+                  const byUser = new Map(picks.map((p) => [p.userId, p]));
                   const final = g.status === "post";
 
                   return (
@@ -173,7 +173,8 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                       </th>
 
                       {members.map((m) => {
-                        const teamId = byUser.get(m.id);
+                        const entry = byUser.get(m.id);
+                        const teamId = entry?.teamId;
                         if (!g.locked) {
                           return (
                             <td
@@ -207,7 +208,9 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                               className={`inline-flex items-center gap-1 font-mono text-meta ${
                                 wrong ? "text-n2" : "team-text"
                               }`}
-                              title={`${m.username}: ${team.displayName}`}
+                              title={`${m.username}: ${team.displayName}${
+                                entry?.rank == null ? " (ohne Punkte)" : ` für ${entry.rank} Punkte`
+                              }`}
                             >
                               {final && (
                                 <span aria-hidden className={correct ? "text-correct" : "text-wrong"}>
@@ -215,6 +218,12 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                                 </span>
                               )}
                               {team.abbrev}
+                              {/* What the pick was worth rides with it — the grid
+                                  is unreadable otherwise, because a column of
+                                  abbreviations no longer explains the total. */}
+                              <span className={`tabular-nums ${wrong ? "text-n3" : "text-n2"}`}>
+                                {entry?.rank ?? "·"}
+                              </span>
                             </span>
                           </td>
                         );
@@ -228,7 +237,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                 <tr className="border-t-2 border-ink">
                   <th scope="row" className="sticky left-0 z-10 bg-paper py-2 pr-3 text-left">
                     <span className="label">
-                      {week?.complete ? "Endstand" : "Bisher richtig"}
+                      {week?.complete ? "Endstand" : "Punkte bisher"}
                     </span>
                   </th>
                   {members.map((m) => {
@@ -249,7 +258,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                               : undefined
                           }
                         >
-                          {row?.correct ?? 0}
+                          {row?.points ?? 0}
                         </span>
                       </td>
                     );

@@ -51,9 +51,12 @@ export default async function ProfilePage({
   const rank = board.season.findIndex((s) => s.userId === subject.id);
   const record = board.season[rank];
   const weeks = board.weeks.filter((w) => w.started);
-  const mostGamesInAWeek = Math.max(
+  // The bars are scaled by the biggest weekly points total anyone could have
+  // had, not by games played: a week is now won on points, so a points bar is
+  // what "how did that week go" actually means.
+  const bestWeeklyPoints = Math.max(
     1,
-    ...weeks.map((w) => w.rows.find((r) => r.userId === subject.id)?.decided ?? 0),
+    ...weeks.flatMap((w) => w.rows.map((r) => r.points)),
   );
 
   return (
@@ -77,7 +80,11 @@ export default async function ProfilePage({
       ) : (
         <>
           <dl className="grid grid-cols-2 gap-px border border-rule bg-rule sm:grid-cols-4">
-            <Stat label="Richtig" value={String(record.correct)} sub={`von ${record.decided}`} />
+            <Stat
+              label="Punkte"
+              value={String(record.points)}
+              sub={`${record.correct} von ${record.decided} richtig`}
+            />
             <Stat label="Quote" value={pct(record.correct, record.decided)} />
             <Stat
               label="Wochen gewonnen"
@@ -86,7 +93,7 @@ export default async function ProfilePage({
             />
             <Stat
               label="Beste Woche"
-              value={record.bestWeek ? String(record.bestWeek.correct) : "—"}
+              value={record.bestWeek ? String(record.bestWeek.points) : "—"}
               sub={record.bestWeek ? `Woche ${record.bestWeek.ordinal}` : undefined}
             />
           </dl>
@@ -115,7 +122,7 @@ export default async function ProfilePage({
               {weeks.map((w) => {
                 const row = w.rows.find((r) => r.userId === subject.id);
                 const won = w.winnerIds.includes(subject.id);
-                const correct = row?.correct ?? 0;
+                const points = row?.points ?? 0;
                 return (
                   <li
                     key={w.ref.ordinal}
@@ -127,25 +134,19 @@ export default async function ProfilePage({
                     >
                       {w.ref.label}
                     </Link>
-                    {/* Same idiom as the consensus bars: the track is how many
-                        games there were to get right, the fill is how many were.
-                        Scaling by raw count alone would make a two-game playoff
-                        round look like a collapse next to a sixteen-game week. */}
+                    {/* One bar, one meaning: points scored that week against
+                        the best anyone managed in any week. */}
                     <span className="min-w-0 flex-1">
-                      <span
-                        className="relative block h-2.5 bg-sunken"
-                        style={{ width: `${Math.max(6, ((row?.decided ?? 0) / mostGamesInAWeek) * 100)}%` }}
-                      >
+                      <span className="relative block h-2.5 bg-sunken">
                         <span
                           className={`absolute inset-y-0 left-0 block ${won ? "bg-ink" : "bg-n3"}`}
-                          style={{
-                            width: row && row.decided > 0 ? `${(correct / row.decided) * 100}%` : "0%",
-                          }}
+                          style={{ width: `${(points / bestWeeklyPoints) * 100}%` }}
                         />
                       </span>
                     </span>
                     <span data-numeric className="shrink-0 font-mono text-meta text-n1">
-                      {correct}/{row?.decided ?? 0}
+                      {points}
+                      <span className="text-n2"> · {row?.correct ?? 0} richtig</span>
                     </span>
                     <span className="w-16 shrink-0 text-right">
                       {won && (

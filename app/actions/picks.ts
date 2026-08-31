@@ -1,11 +1,11 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { games, picks } from "@/lib/db/schema";
-import { PICK_ERROR_MESSAGES, rejectPick } from "@/lib/pick-rules";
+import { PICK_ERROR_MESSAGES, rejectPick, rejectRank } from "@/lib/pick-rules";
 
 export type PickResult = { ok: true } | { ok: false; error: string };
 
@@ -15,10 +15,18 @@ async function loadGame(gameId: string) {
       kickoff: games.kickoff,
       homeTeamId: games.homeTeamId,
       awayTeamId: games.awayTeamId,
+      season: games.season,
+      seasonType: games.seasonType,
+      week: games.week,
     })
     .from(games)
     .where(eq(games.id, gameId));
   return game;
+}
+
+function touched() {
+  revalidatePath("/picks");
+  revalidatePath("/standings");
 }
 
 /**
@@ -41,11 +49,12 @@ export async function setPick(gameId: string, teamId: string): Promise<PickResul
     .values({ userId: user.id, gameId, teamId })
     .onConflictDoUpdate({
       target: [picks.userId, picks.gameId],
+      // The rank belongs to the game, not to the side taken, so changing your
+      // mind about the winner keeps the confidence you had in it.
       set: { teamId, updatedAt: new Date() },
     });
 
-  revalidatePath("/picks");
-  revalidatePath("/standings");
+  touched();
   return { ok: true };
 }
 
@@ -59,7 +68,100 @@ export async function clearPick(gameId: string): Promise<PickResult> {
 
   await db.delete(picks).where(and(eq(picks.userId, user.id), eq(picks.gameId, gameId)));
 
-  revalidatePath("/picks");
-  revalidatePath("/standings");
+  touched();
+  return { ok: true };
+}
+
+/**
+ * Assigns a confidence rank, swapping with whichever game already holds it.
+ *
+ * The whole week is read and written inside one transaction: the "each number
+ * once" rule spans rows in `games` and so cannot be a column constraint, and
+ * two tabs open on the same account would otherwise be able to leave a member
+ * holding the same number twice.
+ */
+export async function setRank(gameId: string, rank: number): Promise<PickResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: PICK_ERROR_MESSAGES.NO_SESSION };
+
+  const game = await loadGame(gameId);
+  const rejection = rejectPick(game, null);
+  if (rejection) return { ok: false, error: PICK_ERROR_MESSAGES[rejection] };
+
+  return db.transaction(async (tx) => {
+    const week = await tx
+      .select({
+        id: games.id,
+        kickoff: games.kickoff,
+        pickedRank: picks.rank,
+        pickedBy: picks.userId,
+      })
+      .from(games)
+      .leftJoin(picks, and(eq(picks.gameId, games.id), eq(picks.userId, user.id)))
+      .where(
+        and(
+          eq(games.season, game!.season),
+          eq(games.seasonType, game!.seasonType),
+          eq(games.week, game!.week),
+        ),
+      );
+
+    const mine = week.filter((r) => r.pickedBy === user.id);
+    const holder = mine.find((r) => r.pickedRank === rank && r.id !== gameId);
+    const now = new Date();
+
+    const bad = rejectRank(
+      rank,
+      week.length,
+      mine.some((r) => r.id === gameId),
+      holder !== undefined && holder.kickoff.getTime() <= now.getTime(),
+    );
+    if (bad) return { ok: false as const, error: PICK_ERROR_MESSAGES[bad] };
+
+    const previous = mine.find((r) => r.id === gameId)?.pickedRank ?? null;
+
+    // Clear first so the two updates never collide on the same number.
+    if (holder) {
+      await tx
+        .update(picks)
+        .set({ rank: null, updatedAt: now })
+        .where(and(eq(picks.userId, user.id), eq(picks.gameId, holder.id)));
+    }
+
+    await tx
+      .update(picks)
+      .set({ rank, updatedAt: now })
+      .where(and(eq(picks.userId, user.id), eq(picks.gameId, gameId)));
+
+    // The displaced game takes the number this one was carrying, which may be
+    // none — then it simply comes back unranked.
+    if (holder) {
+      await tx
+        .update(picks)
+        .set({ rank: previous, updatedAt: now })
+        .where(and(eq(picks.userId, user.id), eq(picks.gameId, holder.id)));
+    }
+
+    return { ok: true as const };
+  }).then((result) => {
+    if (result.ok) touched();
+    return result;
+  });
+}
+
+/** Takes the number off a game, putting it back in circulation. */
+export async function clearRank(gameId: string): Promise<PickResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: PICK_ERROR_MESSAGES.NO_SESSION };
+
+  const rejection = rejectPick(await loadGame(gameId), null);
+  if (rejection) return { ok: false, error: PICK_ERROR_MESSAGES[rejection] };
+
+  await db
+    .update(picks)
+    .set({ rank: null, updatedAt: new Date() })
+    .where(and(eq(picks.userId, user.id), eq(picks.gameId, gameId)));
+
+  touched();
   return { ok: true };
 }

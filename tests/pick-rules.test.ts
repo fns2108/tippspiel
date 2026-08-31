@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isLocked, rejectPick } from "../lib/pick-rules.ts";
+import { availableRanks, isLocked, rejectPick, rejectRank } from "../lib/pick-rules.ts";
 import { resolveIsAdmin } from "../lib/admin.ts";
 
 const NOW = new Date("2026-09-13T17:00:00Z");
@@ -96,5 +96,33 @@ describe("admin resolution", () => {
     withEnv("   ", () => {
       assert.equal(resolveIsAdmin("finn", true), true);
     });
+  });
+});
+
+describe("confidence ranks", () => {
+  it("accepts a rank inside this week's range, on a game that has a pick", () => {
+    assert.equal(rejectRank(1, 16, true, false), null);
+    assert.equal(rejectRank(16, 16, true, false), null);
+  });
+
+  it("refuses a rank the week has no room for", () => {
+    assert.equal(rejectRank(0, 16, true, false), "RANK_OUT_OF_RANGE");
+    assert.equal(rejectRank(17, 16, true, false), "RANK_OUT_OF_RANGE");
+    assert.equal(rejectRank(2.5, 16, true, false), "RANK_OUT_OF_RANGE");
+  });
+
+  it("refuses to rank a game nobody has picked yet", () => {
+    assert.equal(rejectRank(4, 16, false, false), "RANK_NEEDS_PICK");
+  });
+
+  it("refuses a rank frozen on a game that already kicked off", () => {
+    // Taking it would mean moving that game's number, and its pick is settled.
+    assert.equal(rejectRank(4, 16, true, true), "RANK_TAKEN_BY_LOCKED");
+  });
+
+  it("lists the numbers still going spare", () => {
+    assert.deepEqual(availableRanks(5, [2, 4]), [1, 3, 5]);
+    assert.deepEqual(availableRanks(3, []), [1, 2, 3]);
+    assert.deepEqual(availableRanks(3, [1, 2, 3]), []);
   });
 });

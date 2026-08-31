@@ -5,7 +5,7 @@ import { games } from "@/lib/db/schema";
 import { syncWeekIfStale } from "@/lib/espn/sync";
 import { SERVER_TZ, formatTime, nflDayKey, nflDayLabel } from "@/lib/format";
 import { allWeekRefs, weekRef } from "@/lib/nfl/season";
-import { getMyPicks, getVisiblePicks, getWeekGames, type GameView } from "@/lib/queries";
+import { getMyPicks, getVisiblePicks, getWeekGames, type GameView, type MyPick } from "@/lib/queries";
 import type { GameCard, PickedBy } from "@/components/pick-row";
 import type { RailWeek } from "@/components/week-rail";
 
@@ -75,7 +75,11 @@ export type WeekView = {
   ref: ReturnType<typeof weekRef>;
   groups: DayGroup[];
   cards: Map<string, GameCard>;
-  myPicks: Map<string, string>;
+  myPicks: Map<string, MyPick>;
+  /** Ranks this member has already spent, so the pickers can grey them out. */
+  takenRanks: number[];
+  /** Games picked but not yet ranked — the thing the banner nags about. */
+  unranked: GameView[];
   pickedByGame: Map<string, PickedBy[]>;
   totalGames: number;
   openGames: GameView[];
@@ -122,12 +126,25 @@ export async function loadWeekView(
 
   const openGames = list.filter((g) => !g.locked);
   const unpicked = openGames.filter((g) => !myPicks.has(g.id));
+  // Picked but not ranked. A game with no pick at all is the other banner's
+  // business, and counting it here would double-count the same game.
+  const unranked = openGames.filter((g) => {
+    const mine = myPicks.get(g.id);
+    return mine !== undefined && mine.rank === null;
+  });
+
+  const takenRanks = [...myPicks.values()]
+    .map((p) => p.rank)
+    .filter((r): r is number => r !== null)
+    .sort((a, b) => a - b);
 
   return {
     ref,
     groups: groupByNflDay(list),
     cards: new Map(list.map((g) => [g.id, toGameCard(g)])),
     myPicks,
+    takenRanks,
+    unranked,
     pickedByGame,
     totalGames: list.length,
     openGames,

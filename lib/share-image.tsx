@@ -146,7 +146,7 @@ function BoardRow({
 }) {
   const won = row.leader;
   const track = 260;
-  const fill = best > 0 ? Math.round((row.correct / best) * track) : 0;
+  const fill = best > 0 ? Math.round((row.points / best) * track) : 0;
 
   return (
     <div
@@ -226,21 +226,24 @@ function BoardRow({
         style={{
           display: "flex",
           alignItems: "baseline",
-          width: 128,
+          width: 168,
           justifyContent: "flex-end",
           fontFamily: "JetBrains Mono",
         }}
       >
-        <div style={{ display: "flex", fontSize: 40, fontWeight: 700 }}>{row.correct}</div>
+        <div style={{ display: "flex", fontSize: 40, fontWeight: 700 }}>{row.points}</div>
+        {/* The correct count rides along in the smaller size: points win the
+            week, but "9 of 13" is still how people talk about how they did. */}
         <div
           style={{
             display: "flex",
-            fontSize: 26,
+            fontSize: 24,
             fontWeight: 500,
+            marginLeft: 8,
             color: won ? "rgba(251,251,250,0.65)" : N2,
           }}
         >
-          /{row.decided}
+          {row.correct}/{row.decided}
         </div>
       </div>
     </div>
@@ -310,7 +313,7 @@ export function renderShareCard(
 ): ImageResponse {
   const { height, gameRows } = measure(card);
 
-  const best = card.rows[0]?.correct ?? 0;
+  const best = card.rows[0]?.points ?? 0;
   const cellWidth = Math.floor((WIDTH - PAD * 2) / GAME_COLS);
 
   // Column-major, so a column reads top to bottom the way the games are listed.
@@ -406,7 +409,7 @@ export function renderShareCard(
             <Label>Saison</Label>
             <div style={{ display: "flex", marginLeft: 24, ...FOOT }}>
               {card.seasonTop
-                .map((s, i) => `${i + 1}. ${s.username} ${s.correct}`)
+                .map((s, i) => `${i + 1}. ${s.username} ${s.points}`)
                 .join("   \u00b7   ")}
             </div>
           </div>

@@ -16,6 +16,8 @@ import { getScoreboard, getWeekGames, type Scoreboard } from "@/lib/queries";
 export type ShareRow = {
   rank: number;
   username: string;
+  /** What wins the week. */
+  points: number;
   correct: number;
   decided: number;
   /** Alone or shared at the top. Only meaningful once the week is complete. */
@@ -57,7 +59,7 @@ export type ShareCard = {
   rows: ShareRow[];
   games: ShareGame[];
   /** Season table after this week, for the footer line. */
-  seasonTop: { username: string; correct: number }[];
+  seasonTop: { username: string; points: number }[];
 };
 
 /**
@@ -105,14 +107,15 @@ export async function loadShareCard(
   let rank = 0;
   let previous: number | null = null;
   const rows: ShareRow[] = ordered.map((r, i) => {
-    if (previous === null || r.correct !== previous) {
+    if (previous === null || r.points !== previous) {
       rank = i + 1;
-      previous = r.correct;
+      previous = r.points;
     }
     const leader = winnerIds.includes(r.userId);
     return {
       rank,
       username: r.username,
+      points: r.points,
       correct: r.correct,
       decided: r.decided,
       leader,
@@ -151,7 +154,7 @@ export async function loadShareCard(
     })),
     seasonTop: board.season.slice(0, 3).map((s) => ({
       username: s.username,
-      correct: s.correct,
+      points: s.points,
     })),
   };
 }

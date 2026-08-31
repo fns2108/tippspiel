@@ -41,9 +41,10 @@ night, and early morning. A Monday night game is Tuesday 02:15 locally.
 ## Product Purpose
 
 A season-long NFL pick'em pool for one group of friends. Each week every member picks the
-outright winner of every game; one point per correct pick. There is a winner each week
-(most correct picks that week, ties shared) and an overall winner at the end of the season
-(most correct picks across the regular season and playoffs).
+outright winner of every game and ranks the games 1..N by confidence, each number used once.
+A correct pick scores its rank; a wrong one scores nothing. There is a winner each week
+(most points that week, ties shared) and an overall winner at the end of the season (most
+points across the regular season and playoffs).
 
 Success is that the group actually uses it for a whole season without the owner having to
 chase anyone or fix scores by hand.
@@ -79,14 +80,15 @@ Two things distinguish it from a generic pick'em app:
 Confirmed functionality:
 
 - Invite-key registration, username + password login, session cookies.
-- A picking page listing the current week's games with team names, logos, home/away, and
-  the current point spread shown as context only.
-- Straight-up scoring: one point per correct outright winner. A drawn game counts for
-  nobody. The spread never affects scoring.
+- A picking page listing the current week's games with team names, logos and home/away,
+  where each game takes both a winner and a confidence rank.
+- Confidence scoring: the ranks 1..N are spread across the week's games, one each, and a
+  correct pick scores its rank. An unranked pick scores nothing even when it is right. A
+  drawn game counts for nobody.
 - Per-game lock at that game's kickoff, enforced server-side on every write.
 - Other members' picks on a game become readable only once that game has kicked off.
-- Weekly winner (most correct that week; ties are shared, all tied members are winners)
-  and a season winner on the same rule.
+- Weekly winner (most points that week; ties are shared, all tied members are winners) and
+  a season winner on the same rule. Correct picks break a tie on points.
 - Playoff rounds count as additional weeks with their own weekly winners and roll into the
   season total.
 - Analytics: live and past weekly rankings, the season table, and per-team consensus —
@@ -97,7 +99,8 @@ Confirmed functionality:
 
 Explicitly excluded by the owner:
 
-- No against-the-spread scoring, no confidence points, no weekly tiebreaker guess.
+- No against-the-spread scoring and no weekly tiebreaker guess. The spread is not shown
+  anywhere and never affects scoring.
 - No auto-filling of missed picks — a forgotten week simply scores zero.
 
 Constraints:
@@ -135,6 +138,6 @@ showing everyone's; *the grid* is the all-members-by-all-games view of a week.
 - ESPN teams endpoint: all 32 teams with primary and alternate colors and both light and
   dark logo variants. These logos are real assets and are downloaded at seed time.
 - The completed 2025 season, including playoffs, is available from the same API and is the
-  test corpus for scoring, weekly winners, and shared ties.
+  test corpus for scoring, weekly winners, confidence points, and shared ties.
 - There are no users, picks, testimonials, or historical pool results yet. The first season
   starts empty and nothing may fabricate past standings or member names.

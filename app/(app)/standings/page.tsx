@@ -71,7 +71,7 @@ export default async function StandingsPage() {
 /* ---------------------------------------------------------- season table */
 
 function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
-  const leader = board.season[0]?.correct ?? 0;
+  const leader = board.season[0]?.points ?? 0;
 
   return (
     <section aria-labelledby="season-table" className="space-y-3">
@@ -80,7 +80,7 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-        <table className="w-full min-w-[34rem] border-collapse text-sm">
+        <table className="w-full min-w-[38rem] border-collapse text-sm">
           <thead>
             <tr className="border-b border-rule text-n1">
               <th scope="col" className="w-8 py-2 text-right font-normal">
@@ -88,6 +88,11 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
               </th>
               <th scope="col" className="py-2 pl-3 text-left font-normal">
                 <span className="label">Mitglied</span>
+              </th>
+              <th scope="col" className="py-2 pl-3 text-right font-normal">
+                <span className="label" title="Summe der Punkte auf richtigen Tipps">
+                  Punkte
+                </span>
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
                 <span className="label">Richtig</span>
@@ -110,7 +115,7 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
           </thead>
           <tbody>
             {board.season.map((s, i) => {
-              const tiedWithLeader = s.correct === leader && leader > 0;
+              const tiedWithLeader = s.points === leader && leader > 0;
               const me = s.userId === meId;
               return (
                 <tr
@@ -132,6 +137,9 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
                     {me && <span className="label ml-2">du</span>}
                   </td>
                   <td data-numeric className="py-2 pl-3 text-right font-mono font-medium">
+                    {s.points}
+                  </td>
+                  <td data-numeric className="py-2 pl-3 text-right font-mono text-n1">
                     {s.correct}
                   </td>
                   <td data-numeric className="py-2 pl-3 text-right font-mono text-n1">
@@ -151,7 +159,7 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
                     )}
                   </td>
                   <td data-numeric className="py-2 pl-3 text-right font-mono text-n1">
-                    {s.bestWeek ? `${s.bestWeek.correct}` : <span className="text-n3">—</span>}
+                    {s.bestWeek ? `${s.bestWeek.points}` : <span className="text-n3">—</span>}
                   </td>
                 </tr>
               );
@@ -159,9 +167,11 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
           </tbody>
         </table>
       </div>
-      <p className="text-meta text-n2">
-        * enthält Wochen, die mit jemandem geteilt wurden. Bei Gleichstand zählt die Woche für
-        alle mit der Höchstpunktzahl als Sieg.
+      <p className="max-w-[68ch] text-meta text-n2">
+        Jeder Tipp trägt die Punkte, die ihr vor Kickoff gegeben wurden — 1 bis zur Anzahl der
+        Spiele, jede Zahl einmal. Richtig getippt zählt die Zahl, falsch getippt zählt nichts.
+        <br />* enthält Wochen, die mit jemandem geteilt wurden. Bei Gleichstand zählt die Woche
+        für alle mit der Höchstpunktzahl als Sieg.
       </p>
     </section>
   );
@@ -191,7 +201,7 @@ function WeeklyLedger({
       <ul className="border-t border-rule">
         {weeks.map((w) => {
           const mine = w.rows.find((r) => r.userId === meId);
-          const top = w.rows[0]?.correct ?? 0;
+          const top = w.rows[0]?.points ?? 0;
           const winners = w.winnerIds.map(
             (id) => board.members.find((m) => m.id === id)?.username ?? "—",
           );
@@ -217,7 +227,7 @@ function WeeklyLedger({
                       </span>
                       <span className="font-medium">{winners.join(", ")}</span>
                       <span data-numeric className="ml-2 font-mono text-meta text-n2">
-                        {top}/{w.totalGames}
+                        {top} Punkte
                       </span>
                     </>
                   ) : (
@@ -235,7 +245,7 @@ function WeeklyLedger({
 
               <span data-numeric className="font-mono text-meta text-n1">
                 <span className="label mr-1.5">du</span>
-                {mine?.correct ?? 0}
+                {mine?.points ?? 0}
               </span>
             </li>
           );

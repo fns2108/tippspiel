@@ -1,0 +1,1 @@
+ALTER TABLE "picks" ADD COLUMN "rank" smallint;

@@ -167,6 +167,18 @@ export const picks = pgTable(
     teamId: text("team_id")
       .notNull()
       .references(() => teams.id),
+    /**
+     * Confidence rank, 1..N over that week's games, each number used once.
+     * Scores its own value when the pick is right and nothing when it is
+     * wrong, so the week is won on judgement rather than on volume.
+     *
+     * Nullable, and null scores zero: a member can pick a winner without
+     * having ranked it yet, and the picks page says how many are outstanding.
+     * Uniqueness is per member per week, which spans rows in `games` and so
+     * cannot be a column constraint — app/actions/picks.ts holds it in a
+     * transaction instead.
+     */
+    rank: smallint("rank"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -40,9 +40,9 @@ export async function savePoolSettings(
  * "lead" on zero and the overall prize would be split between all of them.
  */
 function seasonLeaders(board: Scoreboard): string[] {
-  const top = board.season[0]?.correct ?? 0;
+  const top = board.season[0]?.points ?? 0;
   if (top === 0) return [];
-  return board.season.filter((s) => s.correct === top).map((s) => s.userId);
+  return board.season.filter((s) => s.points === top).map((s) => s.userId);
 }
 
 /** Bridges the scoreboard the pages already load into the payout arithmetic. */
@@ -54,7 +54,7 @@ export function payoutsFromBoard(settings: PoolSettings, board: Scoreboard): Pay
       ordinal: w.ref.ordinal,
       complete: w.complete,
       winnerIds: w.winnerIds,
-      scores: w.rows.map((r) => ({ userId: r.userId, correct: r.correct })),
+      scores: w.rows.map((r) => ({ userId: r.userId, points: r.points })),
     })),
     seasonLeaders(board),
   );

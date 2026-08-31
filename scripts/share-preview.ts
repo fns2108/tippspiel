@@ -18,7 +18,9 @@ import type { ShareCard, ShareGame } from "../lib/share-card.ts";
 
 function demoCard(final = false): ShareCard {
   const names = ["Finn", "Jonas", "Marie", "Hendrik", "Lena", "Ben", "Sofia", "Til"];
-  const scores = [11, 11, 10, 9, 9, 8, 6, 5];
+  /** Points, then how many picks were right — a good week is both. */
+  const scores = [72, 72, 68, 61, 58, 54, 41, 33];
+  const correct = [11, 11, 10, 9, 9, 8, 6, 5];
 
   // 8 × 20,00 = 160,00 pot, 40,00 off the top, 120,00 over 18 weeks = 6,66 a
   // week with 12 cents left over. Two winners here, so 3,33 each.
@@ -36,7 +38,8 @@ function demoCard(final = false): ShareCard {
     return {
       rank,
       username,
-      correct: scores[i],
+      points: scores[i],
+      correct: correct[i],
       decided: 13,
       leader,
       wonCents: leader ? share : 0,
@@ -84,9 +87,9 @@ function demoCard(final = false): ShareCard {
     rows,
     games,
     seasonTop: [
-      { username: "Finn", correct: 48 },
-      { username: "Marie", correct: 46 },
-      { username: "Jonas", correct: 45 },
+      { username: "Finn", points: 312 },
+      { username: "Marie", points: 298 },
+      { username: "Jonas", points: 291 },
     ],
   };
 }

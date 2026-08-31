@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { clearPick, setPick } from "@/app/actions/picks";
+import { clearPick, clearRank, setPick, setRank } from "@/app/actions/picks";
 import { CheckIcon, CrossIcon, LockIcon } from "@/components/icons";
 import { LocalTime } from "@/components/local-time";
 import { TeamLogo } from "@/components/team-logo";
@@ -34,7 +34,12 @@ export type GameCard = {
   away: TeamCard;
 };
 
-export type PickedBy = { userId: string; username: string; teamId: string };
+export type PickedBy = {
+  userId: string;
+  username: string;
+  teamId: string;
+  rank: number | null;
+};
 
 function TeamSide({
   team,
@@ -151,7 +156,9 @@ function Consensus({ game, pickedBy }: { game: GameCard; pickedBy: PickedBy[] })
 
   const sides = [game.away, game.home].map((team) => ({
     team,
-    members: pickedBy.filter((p) => p.teamId === team.id),
+    members: pickedBy
+      .filter((p) => p.teamId === team.id)
+      .sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0) || a.username.localeCompare(b.username)),
     correct: final && game.winnerTeamId === team.id,
     wrong: final && game.winnerTeamId !== null && game.winnerTeamId !== team.id,
   }));
@@ -184,7 +191,9 @@ function Consensus({ game, pickedBy }: { game: GameCard; pickedBy: PickedBy[] })
                     {correct ? <CheckIcon size={11} /> : <CrossIcon size={11} />}
                   </span>
                 )}
-                {members.map((m) => m.username).join(", ")}
+                {members
+                  .map((m) => (m.rank === null ? m.username : `${m.username} ${m.rank}`))
+                  .join(", ")}
               </>
             )}
           </dd>
@@ -194,16 +203,75 @@ function Consensus({ game, pickedBy }: { game: GameCard; pickedBy: PickedBy[] })
   );
 }
 
+/**
+ * The confidence rank for one game.
+ *
+ * A plain select rather than drag-to-order: the whole slate has to be ranked on
+ * a phone in a couple of minutes, and dragging sixteen rows in a scrolling list
+ * is the worst version of that. Numbers already spent elsewhere stay in the
+ * list and are marked, because picking one is how you swap two games over —
+ * hiding them would make the swap undiscoverable.
+ */
+function RankPicker({
+  value,
+  gameCount,
+  taken,
+  disabled,
+  pending,
+  onChange,
+}: {
+  value: number | null;
+  gameCount: number;
+  taken: number[];
+  disabled: boolean;
+  pending: boolean;
+  onChange: (rank: number | null) => void;
+}) {
+  const spent = new Set(taken.filter((r) => r !== value));
+
+  return (
+    <label className="flex items-center gap-1.5">
+      <span className="label">Punkte</span>
+      <select
+        value={value ?? ""}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+        aria-label="Punkte für dieses Spiel"
+        className={`h-7 min-h-0 rounded-[3px] border px-1.5 py-0 text-meta tabular-nums transition-colors duration-150 ${
+          value === null
+            ? "border-rule bg-paper text-n2"
+            : "border-ink bg-ink font-semibold text-ink-on"
+        } ${disabled ? "cursor-default opacity-70" : "cursor-pointer"} ${pending ? "opacity-60" : ""}`}
+      >
+        <option value="">—</option>
+        {Array.from({ length: gameCount }, (_, i) => i + 1).map((n) => (
+          <option key={n} value={n}>
+            {n}
+            {spent.has(n) ? " · belegt" : ""}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function PickRow({
   game,
   initialPick,
+  initialRank,
+  gameCount,
+  takenRanks,
   pickedBy,
 }: {
   game: GameCard;
   initialPick: string | null;
+  initialRank: number | null;
+  gameCount: number;
+  takenRanks: number[];
   pickedBy: PickedBy[];
 }) {
   const [pick, setPickState] = useState<string | null>(initialPick);
+  const [rank, setRankState] = useState<number | null>(initialRank);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -220,6 +288,21 @@ export function PickRow({
       const result = next === null ? await clearPick(game.id) : await setPick(game.id, next);
       if (!result.ok) {
         setPickState(previous);
+        setError(result.error);
+      }
+    });
+  }
+
+  function rankAs(next: number | null) {
+    if (game.locked) return;
+    const previous = rank;
+    setRankState(next);
+    setError(null);
+
+    startTransition(async () => {
+      const result = next === null ? await clearRank(game.id) : await setRank(game.id, next);
+      if (!result.ok) {
+        setRankState(previous);
         setError(result.error);
       }
     });
@@ -252,8 +335,27 @@ export function PickRow({
           )}
         </div>
 
-        <div className="flex items-baseline gap-2.5 text-meta text-n2">
+        <div className="flex items-center gap-2.5 text-meta text-n2">
           {game.neutralSite && <span>Neutral Site</span>}
+          {game.locked ? (
+            rank !== null && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="label">Punkte</span>
+                <span data-numeric className="font-mono text-sm font-semibold text-ink">
+                  {rank}
+                </span>
+              </span>
+            )
+          ) : (
+            <RankPicker
+              value={rank}
+              gameCount={gameCount}
+              taken={takenRanks}
+              disabled={pick === null}
+              pending={pending}
+              onChange={rankAs}
+            />
+          )}
         </div>
       </div>
 

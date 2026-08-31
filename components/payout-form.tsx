@@ -99,7 +99,7 @@ export function PayoutForm({
             className="input tabular-nums"
           />
           <p id="p-best-hint" className="mt-1.5 text-meta text-n1">
-            Für die meisten richtigen Picks in einer einzelnen Woche.
+            Für die meisten Punkte in einer einzelnen Woche.
           </p>
         </div>
 

@@ -64,8 +64,8 @@ export function WinningsTable({
           label="Beste Woche"
           value={money(payouts.bestWeekPrizeCents)}
           sub={
-            payouts.bestWeekCorrect > 0
-              ? `${payouts.bestWeekCorrect} richtig${payouts.seasonSettled ? "" : " — bisher"}`
+            payouts.bestWeekPoints > 0
+              ? `${payouts.bestWeekPoints} Punkte${payouts.seasonSettled ? "" : " — bisher"}`
               : "noch offen"
           }
         />
@@ -95,7 +95,7 @@ export function WinningsTable({
                 <span className="label">Saisonpreis</span>
               </th>
               <th scope="col" className="py-2 pl-3 text-right font-normal">
-                <span className="label" title="Preis für die meisten richtigen Picks in einer Woche">
+                <span className="label" title="Preis für die meisten Punkte in einer einzelnen Woche">
                   Beste Woche
                 </span>
               </th>

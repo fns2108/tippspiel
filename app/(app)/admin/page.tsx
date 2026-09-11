@@ -222,6 +222,12 @@ export default async function AdminPage() {
           diesem Fenster.
         </p>
 
+        {reminders.reason && (
+          <p className="border border-wrong bg-wrong-soft px-3 py-2.5 text-sm text-wrong">
+            {reminders.reason}
+          </p>
+        )}
+
         <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
           <table className="w-full min-w-[30rem] border-collapse text-sm">
             <thead>

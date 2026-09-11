@@ -177,13 +177,24 @@ export async function sendTestReminderAction(
   _formData: FormData,
 ): Promise<AdminState> {
   const admin = await requireAdmin();
-  const report = await sendTestReminder(admin.id);
+
+  /**
+   * Nothing below is allowed to throw out of this action. A server action that
+   * throws leaves `useActionState` holding its previous state, so the form
+   * renders no message at all and the button looks broken — which is exactly
+   * how a bad VAPID key used to present.
+   */
+  let report;
+  try {
+    report = await sendTestReminder(admin.id);
+  } catch (err) {
+    console.error("[reminder-test]", err);
+    return { error: `Unerwarteter Fehler: ${(err as Error).message}`, notice: null };
+  }
 
   if (!report.configured) {
     return {
-      error:
-        "Push ist nicht konfiguriert. Es fehlen NEXT_PUBLIC_VAPID_PUBLIC_KEY und " +
-        "VAPID_PRIVATE_KEY in den Environment Variables.",
+      error: report.reason ?? "Push ist nicht konfiguriert.",
       notice: null,
     };
   }

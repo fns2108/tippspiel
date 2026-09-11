@@ -11,6 +11,8 @@ const HORIZON_HOURS = 48;
 
 export type ReminderReport = {
   configured: boolean;
+  /** Why not, when `configured` is false. */
+  reason: string | null;
   considered: number;
   sent: number;
   skipped: number;
@@ -18,13 +20,48 @@ export type ReminderReport = {
   errors: string[];
 };
 
+export type VapidStatus = { ok: boolean; reason: string | null };
+
+/**
+ * Checks the push configuration without ever throwing.
+ *
+ * `setVapidDetails` validates as it goes and throws on a malformed key or a
+ * subject that is not a mailto/https url. Letting that escape is worse than it
+ * sounds: thrown out of a server action it leaves the form with no state to
+ * render, so the button looks dead, and thrown out of the cron route it takes
+ * the whole scheduled run down with it. So it is caught here and turned into a
+ * reason the interface can actually show.
+ */
+export function vapidStatus(): VapidStatus {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
+  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
+  const subject = process.env.VAPID_SUBJECT?.trim() || "mailto:admin@example.com";
+
+  const missing = [
+    publicKey ? null : "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+    privateKey ? null : "VAPID_PRIVATE_KEY",
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      reason: `${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"} in den Environment Variables.`,
+    };
+  }
+
+  try {
+    webpush.setVapidDetails(subject, publicKey!, privateKey!);
+    return { ok: true, reason: null };
+  } catch (err) {
+    return {
+      ok: false,
+      reason: `VAPID-Konfiguration ungültig: ${(err as Error).message} (VAPID_SUBJECT ist "${subject}")`,
+    };
+  }
+}
+
 function configure(): boolean {
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT || "mailto:admin@example.com";
-  if (!publicKey || !privateKey) return false;
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-  return true;
+  return vapidStatus().ok;
 }
 
 /**
@@ -37,8 +74,10 @@ function configure(): boolean {
  * simply makes the timing tighter without sending anyone a second copy.
  */
 export async function sendPickReminders(now: Date = new Date()): Promise<ReminderReport> {
+  const status = vapidStatus();
   const report: ReminderReport = {
     configured: false,
+    reason: status.reason,
     considered: 0,
     sent: 0,
     skipped: 0,
@@ -142,6 +181,7 @@ export async function sendPickReminders(now: Date = new Date()): Promise<Reminde
 
 export type TestReminderReport = {
   configured: boolean;
+  reason: string | null;
   subscriptions: number;
   sent: number;
   removed: number;
@@ -160,8 +200,10 @@ export type TestReminderReport = {
  * day's real reminder, and running it twice sends twice.
  */
 export async function sendTestReminder(userId: string): Promise<TestReminderReport> {
+  const status = vapidStatus();
   const report: TestReminderReport = {
     configured: false,
+    reason: status.reason,
     subscriptions: 0,
     sent: 0,
     removed: 0,
@@ -212,6 +254,7 @@ export async function sendTestReminder(userId: string): Promise<TestReminderRepo
 /** What the real job would do right now, without doing it. */
 export async function previewReminders(now: Date = new Date()): Promise<{
   configured: boolean;
+  reason: string | null;
   season: number;
   ordinal: number | null;
   horizonHours: number;
@@ -220,8 +263,10 @@ export async function previewReminders(now: Date = new Date()): Promise<{
 }> {
   const season = currentSeason(now);
   const ordinal = await getCurrentWeekOrdinal(season);
+  const status = vapidStatus();
   const base = {
-    configured: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY),
+    configured: status.ok,
+    reason: status.reason,
     season,
     ordinal,
     horizonHours: HORIZON_HOURS,

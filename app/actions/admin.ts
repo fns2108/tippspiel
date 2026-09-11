@@ -10,6 +10,7 @@ import { generateInviteCode } from "@/lib/invite";
 import { currentSeason, isValidOrdinal } from "@/lib/nfl/season";
 import { money, parseMoneyToCents } from "@/lib/payouts";
 import { savePoolSettings } from "@/lib/pool";
+import { sendTestReminder } from "@/lib/reminders";
 
 export type AdminState = { error: string | null; notice: string | null };
 
@@ -167,5 +168,47 @@ export async function savePayoutSettingsAction(
         ? "Auszahlungen sind aus. Es taucht nirgends Geld auf."
         : `Gespeichert: ${money(pot)} im Topf, ${money(seasonPrize)} für die Gesamtwertung, ` +
           `${money(bestWeek)} für die beste Woche.`,
+  };
+}
+
+/** Sends the signed-in admin a test notification, bypassing horizon and stamp. */
+export async function sendTestReminderAction(
+  _prev: AdminState,
+  _formData: FormData,
+): Promise<AdminState> {
+  const admin = await requireAdmin();
+  const report = await sendTestReminder(admin.id);
+
+  if (!report.configured) {
+    return {
+      error:
+        "Push ist nicht konfiguriert. Es fehlen NEXT_PUBLIC_VAPID_PUBLIC_KEY und " +
+        "VAPID_PRIVATE_KEY in den Environment Variables.",
+      notice: null,
+    };
+  }
+  if (report.subscriptions === 0) {
+    return {
+      error:
+        "Für dich ist kein Gerät angemeldet. Schalte Erinnerungen erst auf deiner Profilseite " +
+        "ein — auf dem iPhone nur, wenn die Seite auf dem Home-Bildschirm liegt.",
+      notice: null,
+    };
+  }
+  if (report.sent === 0) {
+    return {
+      error:
+        `Kein Versand geklappt (${report.subscriptions} Gerät(e)` +
+        `${report.removed > 0 ? `, ${report.removed} abgelaufen und entfernt` : ""})` +
+        `${report.errors.length > 0 ? `: ${report.errors.join(", ")}` : "."}`,
+      notice: null,
+    };
+  }
+
+  return {
+    error: null,
+    notice:
+      `Test an ${report.sent} ${report.sent === 1 ? "Gerät" : "Geräte"} geschickt.` +
+      (report.removed > 0 ? ` ${report.removed} abgelaufene entfernt.` : ""),
   };
 }

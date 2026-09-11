@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { overrideResultAction, resyncWeekAction, revokeInviteKeyAction } from "@/app/actions/admin";
 import { CopyKey, InviteKeyForm } from "@/components/invite-key-form";
 import { PayoutForm, PayoutSummary } from "@/components/payout-form";
+import { ReminderTest } from "@/components/reminder-test";
 import { RefreshIcon } from "@/components/icons";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -11,6 +12,7 @@ import { games, inviteKeys, syncState, users } from "@/lib/db/schema";
 import { SERVER_TZ, formatDate, formatDayAndTime } from "@/lib/format";
 import { allWeekRefs, currentSeason, weekRef } from "@/lib/nfl/season";
 import { getPoolSettings, payoutsFromBoard } from "@/lib/pool";
+import { previewReminders } from "@/lib/reminders";
 import { getCurrentWeekOrdinal, getScoreboard, getWeekGames } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +37,7 @@ export default async function AdminPage() {
   ]);
 
   const payouts = payoutsFromBoard(settings, board);
+  const reminders = await previewReminders();
 
   const failing = syncRows.filter((r) => r.lastError);
 
@@ -203,6 +206,56 @@ export default async function AdminPage() {
             Zuletzt geladen: {formatDayAndTime(syncRows[0].lastSyncedAt, SERVER_TZ)} ({SERVER_TZ})
           </p>
         )}
+      </section>
+
+      <section aria-labelledby="reminders" className="space-y-3">
+        <div className="rule-head">
+          <h2 id="reminders">Erinnerungen</h2>
+          <p className="label">
+            {reminders.configured ? "Push aktiv" : "Push nicht konfiguriert"}
+          </p>
+        </div>
+        <p className="max-w-[62ch] text-sm text-n1">
+          Einmal am Tag, an jeden mit offenen Spielen, die innerhalb von{" "}
+          {reminders.horizonHours} Stunden anpfeifen. Gerade sind{" "}
+          <strong className="font-mono tabular-nums">{reminders.dueSoon}</strong> Spiele in
+          diesem Fenster.
+        </p>
+
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <table className="w-full min-w-[30rem] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-rule">
+                <th scope="col" className="py-2 text-left"><span className="label">Mitglied</span></th>
+                <th scope="col" className="py-2 pl-3 text-right"><span className="label">Offen</span></th>
+                <th scope="col" className="py-2 pl-3 text-right"><span className="label">Geräte</span></th>
+                <th scope="col" className="py-2 pl-3 text-left"><span className="label">Heute schon</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {reminders.members.map((m) => (
+                <tr key={m.username} className="border-b border-rule">
+                  <td className="py-2">{m.username}</td>
+                  <td data-numeric className="py-2 pl-3 text-right font-mono text-meta">
+                    {m.open}
+                  </td>
+                  <td data-numeric className="py-2 pl-3 text-right font-mono text-meta">
+                    {m.subscriptions === 0 ? <span className="text-n3">—</span> : m.subscriptions}
+                  </td>
+                  <td className="py-2 pl-3 text-meta text-n1">
+                    {m.alreadyToday ? "ja" : "nein"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="max-w-[62ch] text-meta text-n2">
+          Der Test geht nur an dich, ignoriert das Zeitfenster und die Einmal-pro-Tag-Sperre,
+          und verbraucht die echte Erinnerung des Tages nicht.
+        </p>
+        <ReminderTest />
       </section>
 
       <section aria-labelledby="results" className="space-y-3">

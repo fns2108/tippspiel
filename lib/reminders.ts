@@ -139,3 +139,134 @@ export async function sendPickReminders(now: Date = new Date()): Promise<Reminde
 
   return report;
 }
+
+export type TestReminderReport = {
+  configured: boolean;
+  subscriptions: number;
+  sent: number;
+  removed: number;
+  errors: string[];
+};
+
+/**
+ * Sends one notification to a single member, right now.
+ *
+ * Deliberately ignores both gates the real job depends on — the 48-hour
+ * horizon and the once-a-day stamp — because those are exactly what make the
+ * real job impossible to test on demand: out of season nobody qualifies, and
+ * in season it will only fire once per member per day.
+ *
+ * It touches nothing: no stamp is written, so a test can never consume the
+ * day's real reminder, and running it twice sends twice.
+ */
+export async function sendTestReminder(userId: string): Promise<TestReminderReport> {
+  const report: TestReminderReport = {
+    configured: false,
+    subscriptions: 0,
+    sent: 0,
+    removed: 0,
+    errors: [],
+  };
+
+  if (!configure()) return report;
+  report.configured = true;
+
+  const subs = await db
+    .select()
+    .from(pushSubscriptions)
+    .where(eq(pushSubscriptions.userId, userId));
+
+  report.subscriptions = subs.length;
+  if (subs.length === 0) return report;
+
+  const payload = JSON.stringify({
+    title: "Test",
+    body: "Erinnerungen funktionieren. Das war ein Test.",
+    // A tag of its own, so a test never replaces a real reminder in the tray.
+    tag: "pickem-test",
+    url: "/picks",
+  });
+
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        payload,
+      );
+      report.sent++;
+    } catch (err) {
+      const status = (err as { statusCode?: number }).statusCode;
+      // 404/410 mean the browser threw the subscription away; stop storing it.
+      if (status === 404 || status === 410) {
+        await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, sub.endpoint));
+        report.removed++;
+      } else {
+        report.errors.push(String(status ?? (err as Error).message));
+      }
+    }
+  }
+
+  return report;
+}
+
+/** What the real job would do right now, without doing it. */
+export async function previewReminders(now: Date = new Date()): Promise<{
+  configured: boolean;
+  season: number;
+  ordinal: number | null;
+  horizonHours: number;
+  dueSoon: number;
+  members: { username: string; open: number; subscriptions: number; alreadyToday: boolean }[];
+}> {
+  const season = currentSeason(now);
+  const ordinal = await getCurrentWeekOrdinal(season);
+  const base = {
+    configured: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY),
+    season,
+    ordinal,
+    horizonHours: HORIZON_HOURS,
+  };
+  if (ordinal === null) return { ...base, dueSoon: 0, members: [] };
+
+  const ref = weekRef(ordinal);
+  const horizon = new Date(now.getTime() + HORIZON_HOURS * 3_600_000);
+
+  const [{ dueSoon }] = await db
+    .select({ dueSoon: sql<number>`count(*)::int` })
+    .from(games)
+    .where(
+      and(
+        eq(games.season, season),
+        eq(games.seasonType, ref.seasonType),
+        eq(games.week, ref.week),
+        gt(games.kickoff, now),
+        lt(games.kickoff, horizon),
+      ),
+    );
+
+  const day = now.toISOString().slice(0, 10);
+  const rows = await db
+    .select({
+      username: users.username,
+      // count(games.id), not count(*): with no games in the horizon the left
+      // join still yields one row per member, and count(*) would call that 1.
+      open: sql<number>`count(${games.id}) filter (where ${picks.teamId} is null)::int`,
+      subscriptions: sql<number>`(select count(*)::int from ${pushSubscriptions} s where s.user_id = ${users.id})`,
+      alreadyToday: sql<boolean>`exists (select 1 from ${syncState} st where st.key = 'reminder:' || ${users.id} || ':' || ${day})`,
+    })
+    .from(users)
+    .leftJoin(
+      games,
+      and(
+        eq(games.season, season),
+        eq(games.seasonType, ref.seasonType),
+        eq(games.week, ref.week),
+        gt(games.kickoff, now),
+        lt(games.kickoff, horizon),
+      ),
+    )
+    .leftJoin(picks, and(eq(picks.gameId, games.id), eq(picks.userId, users.id)))
+    .groupBy(users.id, users.username);
+
+  return { ...base, dueSoon, members: rows };
+}

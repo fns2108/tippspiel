@@ -74,11 +74,6 @@ export default async function SharePage({ params }: { params: Promise<Params> })
           filename={`tippspiel-${slug(card.ref.label)}-${season}.png`}
           title={`Tippspiel Wedel — ${card.ref.label}`}
         />
-
-        <p className="max-w-[34rem] text-meta text-n2">
-          Im Bild: die Tabelle der Woche, alle Ergebnisse und die Top&nbsp;3 der Saison. Es
-          wird immer auf hellem Grund gezeichnet, damit es bei allen gleich aussieht.
-        </p>
       </div>
     </div>
   );

@@ -165,7 +165,6 @@ export default async function ProfilePage({
             rows={byTeam}
             heading={isMe ? "Wen du tippst" : `Wen ${subject.username} tippt`}
             meta={`Saison ${season}`}
-            subject={isMe ? "du" : subject.username}
           />
         </>
       )}

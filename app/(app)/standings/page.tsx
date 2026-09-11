@@ -167,11 +167,10 @@ function SeasonTable({ board, meId }: { board: Scoreboard; meId: string }) {
           </tbody>
         </table>
       </div>
+      {/* The asterisk in the Siege column has to be explained somewhere. */}
       <p className="max-w-[68ch] text-meta text-n2">
-        Jeder Tipp trägt die Punkte, die ihr vor Kickoff gegeben wurden — 1 bis zur Anzahl der
-        Spiele, jede Zahl einmal. Richtig getippt zählt die Zahl, falsch getippt zählt nichts.
-        <br />* enthält Wochen, die mit jemandem geteilt wurden. Bei Gleichstand zählt die Woche
-        für alle mit der Höchstpunktzahl als Sieg.
+        * enthält Wochen, die mit jemandem geteilt wurden. Bei Gleichstand zählt die Woche für
+        alle mit der Höchstpunktzahl als Sieg.
       </p>
     </section>
   );

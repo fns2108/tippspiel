@@ -41,14 +41,11 @@ export function TeamConsensus({
   rows,
   heading,
   meta,
-  subject = "die Gruppe",
   showCallouts = true,
 }: {
   rows: ConsensusRow[];
   heading: string;
   meta?: string;
-  /** Used in the callout copy: "die Gruppe", "Finn", "du". */
-  subject?: string;
   showCallouts?: boolean;
 }) {
   const [sort, setSort] = useState<SortKey>("picked");
@@ -183,10 +180,6 @@ export function TeamConsensus({
         ))}
       </ul>
 
-      <p className="text-meta text-n2">
-        Die Balkenlänge zeigt, wie oft {subject} dieses Team getippt hat; der gefüllte Teil, wie
-        oft der Pick richtig war.
-      </p>
     </section>
   );
 }

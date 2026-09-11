@@ -150,15 +150,6 @@ export function WinningsTable({
         </table>
       </div>
 
-      <p className="max-w-[68ch] text-meta text-n2">
-        {payouts.seasonSettled
-          ? "Die Saison ist durch — der Topf ist vollständig verteilt."
-          : `Saisonpreis (${money(payouts.seasonPrizeCents)}) und beste Woche ` +
-            `(${money(payouts.bestWeekPrizeCents)}) werden erst nach der letzten ` +
-            "Auszahlungswoche zugeteilt — bis dahin kann der Wochenrekord noch fallen. Cents, " +
-            "die sich nicht gleichmäßig teilen lassen, gehen an den Gesamtsieger und sind " +
-            "schon eingerechnet."}
-      </p>
     </section>
   );
 }

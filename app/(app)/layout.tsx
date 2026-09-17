@@ -7,6 +7,8 @@ import { getCurrentWeekOrdinal } from "@/lib/queries";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  // A temporary password is good for exactly one thing: choosing a new one.
+  if (user.mustChangePassword) redirect("/passwort");
 
   const season = currentSeason();
   const ordinal = (await getCurrentWeekOrdinal(season)) ?? 1;

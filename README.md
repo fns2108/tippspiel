@@ -117,6 +117,7 @@ export DATABASE_URL="postgresql://...-pooler...neon.tech/neondb?sslmode=require"
 | `npm run sync` | Refreshes the current season's schedule, scores and lines. |
 | `npm run sync -- 2025` | Same, for a specific season. |
 | `npm run invite -- "label" 10` | Prints a new invite key with 10 uses. |
+| `npm run reset-password -- "name"` | Sets a temporary password and signs the member out; they must choose their own on next login. |
 | `npm run db:migrate` | Applies pending migrations. |
 | `npm run db:generate` | Generates a migration after changing `lib/db/schema.ts`. |
 | `npm run backfill` | Replays the completed 2025 season and verifies scoring. |

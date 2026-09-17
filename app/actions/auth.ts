@@ -1,13 +1,19 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import {
   RegistrationError,
   authenticate,
   createSession,
   destroySession,
+  getCurrentUser,
   registerUser,
+  validatePassword,
 } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { hashPassword } from "@/lib/password";
 import { clearAttempts, clientIp, consumeAttempt, describeRetry } from "@/lib/rate-limit";
 
 export type FormState = { error: string | null };
@@ -79,3 +85,54 @@ export async function logoutAction(): Promise<void> {
   await destroySession();
   redirect("/login");
 }
+
+/**
+ * Replaces a temporary password with one the member chose.
+ *
+ * Asks for the temporary password again even though they are signed in: the
+ * session alone would let anyone who picks up an unlocked phone lock the owner
+ * out, and it is the same throttle as login so it cannot be used to guess.
+ */
+export async function changePasswordAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const current = String(formData.get("current") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+
+  if (!current || !password) return { error: "Füll alle drei Felder aus." };
+  if (password !== confirm) return { error: "Die beiden neuen Passwörter stimmen nicht überein." };
+  if (password === current) {
+    return { error: "Das neue Passwort muss sich vom temporären unterscheiden." };
+  }
+
+  const key = `password:user:${user.id}`;
+  const gate = await consumeAttempt(key, 10, HOUR);
+  if (!gate.allowed) {
+    return { error: `Zu viele Versuche. Versuche es ${describeRetry(gate.retryAfterMs)} erneut.` };
+  }
+
+  if (!(await authenticate(user.username, current))) {
+    return { error: "Das temporäre Passwort stimmt nicht." };
+  }
+
+  try {
+    validatePassword(password);
+  } catch (err) {
+    if (err instanceof RegistrationError) return { error: err.message };
+    throw err;
+  }
+
+  await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(password), mustChangePassword: false })
+    .where(eq(users.id, user.id));
+
+  await clearAttempts(key);
+  redirect("/picks");
+}
+

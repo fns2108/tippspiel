@@ -23,6 +23,12 @@ export const users = pgTable(
     usernameLower: text("username_lower").notNull(),
     passwordHash: text("password_hash").notNull(),
     isAdmin: boolean("is_admin").notNull().default(false),
+    /**
+     * Set by `npm run reset-password`. While true, every app page sends the
+     * member to /passwort, so a temporary password sent over a chat is only
+     * ever good for the one login that replaces it.
+     */
+    mustChangePassword: boolean("must_change_password").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({

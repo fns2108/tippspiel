@@ -44,6 +44,8 @@ export type SessionUser = {
   id: string;
   username: string;
   isAdmin: boolean;
+  /** Signed in on a temporary password; see users.mustChangePassword. */
+  mustChangePassword: boolean;
 };
 
 /** The current user, or null. Safe to call from any server component. */
@@ -58,6 +60,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       username: users.username,
       usernameLower: users.usernameLower,
       isAdmin: users.isAdmin,
+      mustChangePassword: users.mustChangePassword,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
@@ -68,6 +71,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     id: row.id,
     username: row.username,
     isAdmin: resolveIsAdmin(row.usernameLower, row.isAdmin),
+    mustChangePassword: row.mustChangePassword,
   };
 }
 
@@ -164,7 +168,7 @@ export async function registerUser(input: {
     }
 
     await tx.insert(inviteRedemptions).values({ code, userId: id });
-    return { id, username, isAdmin };
+    return { id, username, isAdmin, mustChangePassword: false };
   });
 }
 
@@ -180,6 +184,7 @@ export async function authenticate(
       username: users.username,
       isAdmin: users.isAdmin,
       passwordHash: users.passwordHash,
+      mustChangePassword: users.mustChangePassword,
     })
     .from(users)
     .where(eq(users.usernameLower, usernameLower));
@@ -192,7 +197,12 @@ export async function authenticate(
 
   const ok = await verifyPassword(password, row.passwordHash);
   if (!ok) return null;
-  return { id: row.id, username: row.username, isAdmin: resolveIsAdmin(usernameLower, row.isAdmin) };
+  return {
+    id: row.id,
+    username: row.username,
+    isAdmin: resolveIsAdmin(usernameLower, row.isAdmin),
+    mustChangePassword: row.mustChangePassword,
+  };
 }
 
 export { resolveIsAdmin };

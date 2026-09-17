@@ -4,11 +4,12 @@ import { desc, eq } from "drizzle-orm";
 import { overrideResultAction, resyncWeekAction, revokeInviteKeyAction } from "@/app/actions/admin";
 import { CopyKey, InviteKeyForm } from "@/components/invite-key-form";
 import { PayoutForm, PayoutSummary } from "@/components/payout-form";
+import { PointAdjustments } from "@/components/point-adjustments";
 import { ReminderTest } from "@/components/reminder-test";
 import { RefreshIcon } from "@/components/icons";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { games, inviteKeys, syncState, users } from "@/lib/db/schema";
+import { games, inviteKeys, pointAdjustments, syncState, users } from "@/lib/db/schema";
 import { SERVER_TZ, formatDate, formatDayAndTime } from "@/lib/format";
 import { allWeekRefs, currentSeason, weekRef } from "@/lib/nfl/season";
 import { getPoolSettings, payoutsFromBoard } from "@/lib/pool";
@@ -27,13 +28,26 @@ export default async function AdminPage() {
   const proto = h.get("x-forwarded-proto") ?? "http";
   const origin = `${proto}://${h.get("host") ?? "localhost:3000"}`;
 
-  const [keys, members, weekGames, syncRows, settings, board] = await Promise.all([
+  const [keys, members, weekGames, syncRows, settings, board, adjustmentRows] = await Promise.all([
     db.select().from(inviteKeys).orderBy(desc(inviteKeys.createdAt)),
     db.select({ id: users.id, username: users.username, isAdmin: users.isAdmin, createdAt: users.createdAt }).from(users).orderBy(users.usernameLower),
     getWeekGames(season, ordinal),
     db.select().from(syncState).orderBy(desc(syncState.lastSyncedAt)).limit(6),
     getPoolSettings(season),
     getScoreboard(season),
+    db
+      .select({
+        id: pointAdjustments.id,
+        username: users.username,
+        ordinal: pointAdjustments.ordinal,
+        points: pointAdjustments.points,
+        note: pointAdjustments.note,
+        createdAt: pointAdjustments.createdAt,
+      })
+      .from(pointAdjustments)
+      .innerJoin(users, eq(users.id, pointAdjustments.userId))
+      .where(eq(pointAdjustments.season, season))
+      .orderBy(desc(pointAdjustments.createdAt)),
   ]);
 
   const payouts = payoutsFromBoard(settings, board);
@@ -312,6 +326,30 @@ export default async function AdminPage() {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section aria-labelledby="adjust" className="space-y-3">
+        <div className="rule-head">
+          <h2 id="adjust">Punkte korrigieren</h2>
+          <p className="label">Saison {season}</p>
+        </div>
+        <p className="max-w-[62ch] text-sm text-n1">
+          Eine Korrektur wird zu den Punkten des Mitglieds in dieser Woche addiert. Wochensieger,
+          Tabelle und Auszahlungen rechnen danach mit dem korrigierten Wert.
+        </p>
+        <PointAdjustments
+          members={members.map((m) => ({ id: m.id, username: m.username }))}
+          weeks={allWeekRefs().map((r) => ({ ordinal: r.ordinal, label: r.label }))}
+          defaultOrdinal={ordinal}
+          adjustments={adjustmentRows.map((a) => ({
+            id: a.id,
+            username: a.username,
+            weekLabel: weekRef(a.ordinal).label,
+            points: a.points,
+            note: a.note,
+            createdLabel: formatDayAndTime(a.createdAt, SERVER_TZ),
+          }))}
+        />
       </section>
 
       <section aria-labelledby="members" className="space-y-3">

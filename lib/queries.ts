@@ -1,7 +1,8 @@
 import "server-only";
 import { and, asc, eq, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { games, picks, teams, users } from "@/lib/db/schema";
+import { games, picks, pointAdjustments, teams, users } from "@/lib/db/schema";
+import { applyAdjustments } from "@/lib/adjustments";
 import { toOrdinal, weekRef, type WeekRef } from "@/lib/nfl/season";
 import { isLocked } from "@/lib/pick-rules";
 
@@ -182,8 +183,10 @@ export async function getVisiblePicks(
 export type WeekStanding = {
   userId: string;
   username: string;
-  /** Ranks earned on correct picks — what actually wins the week. */
+  /** Ranks earned on correct picks, plus any hand correction — what wins the week. */
   points: number;
+  /** The hand-corrected part of `points`, so a page can say a total was adjusted. */
+  adjustment: number;
   correct: number;
   picked: number;
   decided: number;
@@ -266,6 +269,16 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
     .where(eq(games.season, season))
     .groupBy(picks.userId, games.seasonType, games.week);
 
+  const adjustmentRows = await db
+    .select({
+      userId: pointAdjustments.userId,
+      ordinal: pointAdjustments.ordinal,
+      points: sql<number>`sum(${pointAdjustments.points})::int`,
+    })
+    .from(pointAdjustments)
+    .where(eq(pointAdjustments.season, season))
+    .groupBy(pointAdjustments.userId, pointAdjustments.ordinal);
+
   const nameById = new Map(members.map((m) => [m.id, m.username]));
 
   // Bucket both aggregates by week ordinal, dropping anything unpickable.
@@ -290,11 +303,14 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
       userId: p.userId,
       username: nameById.get(p.userId) ?? "—",
       points: p.points,
+      adjustment: 0,
       correct: p.correct,
       picked: p.picked,
       decided: p.decided,
     });
   }
+
+  applyAdjustments(perWeek, adjustmentRows, nameById);
 
   const weeks: WeekSummary[] = [...buckets.keys()]
     .sort((a, b) => a - b)
@@ -309,6 +325,7 @@ export async function getScoreboard(season: number, now: Date = new Date()): Pro
             userId: m.id,
             username: m.username,
             points: 0,
+            adjustment: 0,
             correct: 0,
             picked: 0,
             decided: 0,

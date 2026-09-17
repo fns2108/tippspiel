@@ -259,6 +259,16 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                           }
                         >
                           {row?.points ?? 0}
+                          {/* A corrected total no longer equals the sum of the
+                              column above it, so it says so. */}
+                          {row && row.adjustment !== 0 && (
+                            <span
+                              className="ml-0.5 text-micro text-n2"
+                              title={`inkl. Korrektur ${row.adjustment > 0 ? "+" : "−"}${Math.abs(row.adjustment)}`}
+                            >
+                              *
+                            </span>
+                          )}
                         </span>
                       </td>
                     );

@@ -213,6 +213,35 @@ export const syncState = pgTable("sync_state", {
   lastError: text("last_error"),
 });
 
+/**
+ * A hand correction to one member's points for one week.
+ *
+ * Points are never stored — they are summed from picks, ranks and results on
+ * every read — so a correction cannot overwrite a total. It is added to that
+ * week's sum instead, which keeps the weekly winner, the season table, the
+ * best-week prize and the payouts all agreeing with each other automatically.
+ * Several rows for the same member and week simply add up.
+ */
+export const pointAdjustments = pgTable(
+  "point_adjustments",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    season: integer("season").notNull(),
+    /** Week ordinal, 1..22 — the same addressing the rest of the app uses. */
+    ordinal: smallint("ordinal").notNull(),
+    /** Signed: +3 adds, −2 takes away. */
+    points: integer("points").notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    seasonIdx: index("point_adjustments_season_idx").on(t.season),
+  }),
+);
+
 /* --------------------------------------------------------------- money */
 
 /**

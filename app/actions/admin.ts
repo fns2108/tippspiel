@@ -1,10 +1,11 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { games, inviteKeys, users } from "@/lib/db/schema";
+import { games, inviteKeys, pointAdjustments, users } from "@/lib/db/schema";
 import { syncWeekIfStale } from "@/lib/espn/sync";
 import { generateInviteCode } from "@/lib/invite";
 import { currentSeason, isValidOrdinal } from "@/lib/nfl/season";
@@ -223,3 +224,71 @@ export async function sendTestReminderAction(
       (report.removed > 0 ? ` ${report.removed} abgelaufene entfernt.` : ""),
   };
 }
+
+/** Every page that shows a points total. */
+function scoresChanged() {
+  revalidatePath("/admin");
+  revalidatePath("/standings");
+  revalidatePath("/week/[season]/[ordinal]", "page");
+  revalidatePath("/u/[username]", "page");
+  revalidatePath("/share/[[...ordinal]]", "page");
+}
+
+/**
+ * Adds a hand correction to one member's points for one week.
+ *
+ * Accepts "+3", "3", "-2" and the typographic "−2", because on a phone the
+ * number keyboard and autocorrect disagree about which minus you meant.
+ */
+export async function addPointAdjustmentAction(
+  _prev: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  await requireAdmin();
+
+  const userId = String(formData.get("userId") ?? "");
+  const ordinal = Number(formData.get("ordinal") ?? 0);
+  const rawPoints = String(formData.get("points") ?? "").trim().replace("−", "-");
+  const note = String(formData.get("note") ?? "").trim().slice(0, 200) || null;
+
+  if (!/^[+-]?\d+$/.test(rawPoints) || Number(rawPoints) === 0) {
+    return { error: "Punkte müssen eine ganze Zahl ungleich 0 sein, z. B. +3 oder -2.", notice: null };
+  }
+  const points = Number(rawPoints);
+  if (Math.abs(points) > 500) {
+    return { error: "Eine Korrektur darf höchstens 500 Punkte groß sein.", notice: null };
+  }
+  if (!isValidOrdinal(ordinal)) {
+    return { error: "Wähl eine Woche aus.", notice: null };
+  }
+
+  const [member] = await db
+    .select({ username: users.username })
+    .from(users)
+    .where(eq(users.id, userId));
+  if (!member) return { error: "Wähl ein Mitglied aus.", notice: null };
+
+  await db.insert(pointAdjustments).values({
+    id: randomUUID(),
+    userId,
+    season: currentSeason(),
+    ordinal,
+    points,
+    note,
+  });
+
+  scoresChanged();
+  return {
+    error: null,
+    notice: `${member.username}: ${points > 0 ? "+" : "−"}${Math.abs(points)} Punkte gespeichert.`,
+  };
+}
+
+/** Removes a correction; the week's points go back to what the picks earned. */
+export async function deletePointAdjustmentAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (id) await db.delete(pointAdjustments).where(eq(pointAdjustments.id, id));
+  scoresChanged();
+}
+

@@ -87,7 +87,9 @@ export function ShareImage({
     if (state.phase !== "ready") return;
     setNote(null);
 
-    const data = { files: [state.file], title };
+    // Files only. A `title` or `text` here is what WhatsApp and others turn
+    // into a caption under the picture, and the picture already says which week.
+    const data = { files: [state.file] };
     if (navigator.canShare?.(data)) {
       try {
         await navigator.share(data);

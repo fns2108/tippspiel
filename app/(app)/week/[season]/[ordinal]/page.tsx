@@ -99,7 +99,10 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                       <Link
                         href={`/u/${encodeURIComponent(m.username)}`}
                         title={m.username}
-                        className={`block max-w-[5.5rem] truncate text-meta no-underline ${
+                        /* mx-auto because a capped block keeps its own box to
+                           the left, so a name that fills 5.5rem reads as
+                           off-centre over its column. */
+                        className={`mx-auto block max-w-[5.5rem] truncate text-center text-meta no-underline ${
                           m.id === user.id ? "font-semibold text-ink" : "text-n1 hover:text-ink"
                         }`}
                       >

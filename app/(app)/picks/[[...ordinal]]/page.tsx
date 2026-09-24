@@ -103,19 +103,6 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
               rank: p.rank,
             }))}
           >
-            <RankBoard
-              games={view.groups.flatMap((group) =>
-                group.games.map((g) => ({
-                  id: g.id,
-                  away: g.away.abbrev,
-                  home: g.home.abbrev,
-                  awayId: g.away.id,
-                  homeId: g.home.id,
-                  neutralSite: g.neutralSite,
-                  locked: g.locked,
-                })),
-              )}
-            />
 
             <div className="space-y-7">
               {view.groups.map((group) => (
@@ -141,6 +128,20 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
                 </section>
               ))}
             </div>
+
+            <RankBoard
+              games={view.groups.flatMap((group) =>
+                group.games.map((g) => ({
+                  id: g.id,
+                  away: g.away.abbrev,
+                  home: g.home.abbrev,
+                  awayId: g.away.id,
+                  homeId: g.home.id,
+                  neutralSite: g.neutralSite,
+                  locked: g.locked,
+                })),
+              )}
+            />
           </PicksProvider>
 
         </div>

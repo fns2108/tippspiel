@@ -119,7 +119,6 @@ export function RankBoard({ games }: { games: RankBoardGame[] }) {
     <section aria-labelledby="rank-board" className="space-y-3">
       <div className="rule-head">
         <h2 id="rank-board">Deine Punkte</h2>
-        <p className="label">Oben = sicherster Tipp</p>
       </div>
 
       <ol className="border-t border-rule">

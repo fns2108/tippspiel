@@ -58,8 +58,8 @@ export type ShareCard = {
   finalGames: number;
   rows: ShareRow[];
   games: ShareGame[];
-  /** Season table after this week, for the footer line. */
-  seasonTop: { username: string; points: number }[];
+  /** The whole season table after this week, for the footer block. */
+  seasonTable: { rank: number; username: string; points: number }[];
 };
 
 /**
@@ -152,7 +152,8 @@ export async function loadShareCard(
       colorAway: teamColors(g.away.color, g.away.altColor).light,
       neutral: g.neutralSite,
     })),
-    seasonTop: board.season.slice(0, 3).map((s) => ({
+    seasonTable: denseRank(board.season).map((s) => ({
+      rank: s.rank,
       username: s.username,
       points: s.points,
     })),
@@ -163,3 +164,17 @@ function latestPlayed(board: Scoreboard): number | null {
   const started = board.weeks.filter((w) => w.started);
   return started.length > 0 ? started[started.length - 1]!.ref.ordinal : null;
 }
+
+/** Shares a place on equal points, so two members on 312 are both second. */
+function denseRank<T extends { points: number }>(rows: T[]): (T & { rank: number })[] {
+  let rank = 0;
+  let previous: number | null = null;
+  return rows.map((row, i) => {
+    if (previous === null || row.points !== previous) {
+      rank = i + 1;
+      previous = row.points;
+    }
+    return { ...row, rank };
+  });
+}
+

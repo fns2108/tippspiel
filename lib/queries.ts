@@ -414,6 +414,10 @@ export type TeamConsensus = {
   decided: number;
   /** Games the team actually played that are final. */
   appearances: number;
+  /** Confidence points staked on this team, whether or not they paid off. */
+  pointsStaked: number;
+  /** The part of that which was actually earned. */
+  pointsWon: number;
 };
 
 /**
@@ -442,6 +446,8 @@ export async function getTeamConsensus(
       timesPicked: sql<number>`count(*)::int`,
       decided: sql<number>`count(*) filter (where ${games.status} = 'post')::int`,
       timesCorrect: sql<number>`count(*) filter (where ${games.winnerTeamId} = ${picks.teamId})::int`,
+      pointsStaked: sql<number>`coalesce(sum(${picks.rank}), 0)::int`,
+      pointsWon: sql<number>`coalesce(sum(${picks.rank}) filter (where ${games.winnerTeamId} = ${picks.teamId}), 0)::int`,
     })
     .from(picks)
     .innerJoin(games, eq(games.id, picks.gameId))
@@ -494,6 +500,8 @@ export async function getTeamConsensus(
       timesPicked: r.timesPicked,
       timesCorrect: r.timesCorrect,
       decided: r.decided,
+      pointsStaked: r.pointsStaked,
+      pointsWon: r.pointsWon,
       appearances: appearancesById.get(r.teamId) ?? 0,
     }))
     .sort((a, b) => b.timesPicked - a.timesPicked || a.team.abbrev.localeCompare(b.team.abbrev));
@@ -516,6 +524,8 @@ export async function getUserTeamBreakdown(
       timesPicked: sql<number>`count(*)::int`,
       decided: sql<number>`count(*) filter (where ${games.status} = 'post')::int`,
       timesCorrect: sql<number>`count(*) filter (where ${games.winnerTeamId} = ${picks.teamId})::int`,
+      pointsStaked: sql<number>`coalesce(sum(${picks.rank}), 0)::int`,
+      pointsWon: sql<number>`coalesce(sum(${picks.rank}) filter (where ${games.winnerTeamId} = ${picks.teamId}), 0)::int`,
     })
     .from(picks)
     .innerJoin(games, eq(games.id, picks.gameId))
@@ -545,6 +555,8 @@ export async function getUserTeamBreakdown(
       timesPicked: r.timesPicked,
       timesCorrect: r.timesCorrect,
       decided: r.decided,
+      pointsStaked: r.pointsStaked,
+      pointsWon: r.pointsWon,
       appearances: 0,
     }))
     .sort((a, b) => b.timesPicked - a.timesPicked || a.team.abbrev.localeCompare(b.team.abbrev));

@@ -17,17 +17,23 @@ export type ConsensusRow = {
   timesPicked: number;
   timesCorrect: number;
   decided: number;
+  /** Confidence points staked on the team, and the part that paid off. */
+  pointsStaked: number;
+  pointsWon: number;
 };
 
-type SortKey = "picked" | "best" | "worst";
+type SortKey = "picked" | "points" | "best" | "worst";
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "picked", label: "Am häufigsten" },
+  { key: "points", label: "Meiste Punkte" },
   { key: "best", label: "Beste %" },
   { key: "worst", label: "Schlechteste %" },
 ];
 
 const rate = (r: ConsensusRow) => (r.decided === 0 ? 0 : r.timesCorrect / r.decided);
+/** The share of staked points that actually came back. */
+const yieldOf = (r: ConsensusRow) => (r.pointsStaked === 0 ? 0 : r.pointsWon / r.pointsStaked);
 
 /**
  * How often a team was backed, and how often that was right.
@@ -55,6 +61,13 @@ export function TeamConsensus({
   const sorted = useMemo(() => {
     const list = [...settled];
     switch (sort) {
+      case "points":
+        return list.sort(
+          (a, b) =>
+            b.pointsStaked - a.pointsStaked ||
+            b.timesPicked - a.timesPicked ||
+            a.team.abbrev.localeCompare(b.team.abbrev),
+        );
       case "best":
         return list.sort(
           (a, b) => rate(b) - rate(a) || b.decided - a.decided || a.team.abbrev.localeCompare(b.team.abbrev),
@@ -84,6 +97,10 @@ export function TeamConsensus({
   if (settled.length === 0) return null;
 
   const mostPicked = Math.max(...settled.map((r) => r.timesPicked));
+  const mostPoints = Math.max(1, ...settled.map((r) => r.pointsStaked));
+  // The bar answers whatever the list is currently sorted by, so the order and
+  // the lengths never tell two different stories.
+  const byPoints = sort === "points";
 
   return (
     <section aria-labelledby={`consensus-${heading.replace(/\W+/g, "-")}`} className="space-y-3">
@@ -150,11 +167,16 @@ export function TeamConsensus({
             <span className="flex min-w-0 flex-1 items-center">
               <span
                 className="relative block h-2.5 bg-sunken"
-                style={{ width: `${Math.max(6, (r.timesPicked / mostPicked) * 100)}%` }}
+                style={{
+                  width: `${Math.max(
+                    6,
+                    ((byPoints ? r.pointsStaked / mostPoints : r.timesPicked / mostPicked) * 100),
+                  )}%`,
+                }}
               >
                 <span
                   className="team-fill absolute inset-y-0 left-0 block"
-                  style={{ width: `${rate(r) * 100}%` }}
+                  style={{ width: `${(byPoints ? yieldOf(r) : rate(r)) * 100}%` }}
                 />
               </span>
             </span>
@@ -175,6 +197,15 @@ export function TeamConsensus({
               title={`${r.timesPicked}× getippt`}
             >
               {r.timesPicked}×
+            </span>
+            <span
+              data-numeric
+              className={`w-16 shrink-0 text-right font-mono text-meta ${
+                byPoints ? "font-medium text-ink" : "text-n2"
+              }`}
+              title={`${r.pointsStaked} Punkte gesetzt, davon ${r.pointsWon} geholt`}
+            >
+              {r.pointsWon}/{r.pointsStaked}
             </span>
           </li>
         ))}

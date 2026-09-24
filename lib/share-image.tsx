@@ -81,6 +81,11 @@ const GAME_ROW_H = 48;
  * the column evenly instead leaves an identical gap either side of every
  * abbreviation, and "BUF" next to "MIA" reads as a fixture that never happened.
  */
+/** What the season line has to fit into, once the label has taken its share. */
+const SEASON_LABEL_W = 130;
+const SEASON_TEXT_W = WIDTH - PAD * 2 - SEASON_LABEL_W;
+/** JetBrains Mono is 0.6em wide, so 26px type is about 15.6px a character. */
+const SEASON_CHARS_PER_LINE = Math.floor(SEASON_TEXT_W / 15.6);
 const GAME_CONTENT_W = 224;
 const GAME_ABBREV_W = 64;
 
@@ -97,6 +102,11 @@ const GAME_ABBREV_W = 64;
 const SLACK = 8;
 const line = (fontSize: number) => Math.ceil(fontSize * 1.2);
 
+/** "1. Finn 312 · 2. Marie 298 · …" */
+function seasonLine(table: ShareCard["seasonTable"]): string {
+  return table.map((s) => `${s.rank}. ${s.username} ${s.points}`).join("   \u00b7   ");
+}
+
 function measure(card: ShareCard) {
   const gameRows = Math.ceil(card.games.length / GAME_COLS);
 
@@ -112,7 +122,14 @@ function measure(card: ShareCard) {
   const results =
     card.games.length > 0 ? 40 + line(21) + 16 + gameRows * GAME_ROW_H : 0;
 
-  const footer = card.seasonTop.length > 0 ? 26 + 2 + line(26) : 0;
+  // The line wraps, and Satori reports nothing back, so the number of lines is
+  // estimated from its length — generously, since too tall only adds a little
+  // white space while too short would clip the table off the bottom.
+  const seasonLines =
+    card.seasonTable.length > 0
+      ? Math.max(1, Math.ceil(seasonLine(card.seasonTable).length / SEASON_CHARS_PER_LINE))
+      : 0;
+  const footer = seasonLines > 0 ? 26 + 2 + seasonLines * line(26) : 0;
 
   return { height: PAD * 2 + head + board + results + footer + SLACK, gameRows };
 }
@@ -396,21 +413,27 @@ export function renderShareCard(
           </div>
         )}
 
-        {card.seasonTop.length > 0 && (
+        {card.seasonTable.length > 0 && (
           <div
             style={{
               display: "flex",
-              alignItems: "center",
               marginTop: "auto",
               paddingTop: 26,
               borderTop: `2px solid ${RULE}`,
             }}
           >
             <Label>Saison</Label>
-            <div style={{ display: "flex", marginLeft: 24, ...FOOT }}>
-              {card.seasonTop
-                .map((s, i) => `${i + 1}. ${s.username} ${s.points}`)
-                .join("   \u00b7   ")}
+            {/* Everyone on one running line that wraps, rather than a second
+                table — the picture already has one. */}
+            <div
+              style={{
+                display: "flex",
+                marginLeft: 24,
+                width: SEASON_TEXT_W,
+                ...FOOT,
+              }}
+            >
+              {seasonLine(card.seasonTable)}
             </div>
           </div>
         )}

@@ -86,11 +86,14 @@ function demoCard(final = false): ShareCard {
     finalGames: games.length,
     rows,
     games,
-    seasonTop: [
-      { username: "Finn", points: 312 },
-      { username: "Marie", points: 298 },
-      { username: "Jonas", points: 291 },
-    ],
+    seasonTable: [
+      ["Finn", 312], ["Marie", 298], ["Jonas", 291],
+      ["Hendrik", 284], ["Lena", 276], ["Jannis Orakel", 263],
+    ].map(([username, points], i) => ({
+      rank: i + 1,
+      username: username as string,
+      points: points as number,
+    })),
   };
 }
 

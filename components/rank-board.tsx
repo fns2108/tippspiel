@@ -18,11 +18,10 @@ export type RankBoardGame = {
 /**
  * The week's points as one ordered list, most confident at the top.
  *
- * Dragging is done with pointer events rather than HTML5 drag-and-drop, which
- * does not fire on touch at all — and this is a phone-first page. The same
- * handlers cover a mouse, so there is one implementation rather than two.
- * Arrow buttons do the same job for keyboards, screen readers, and any case
- * where a drag does not take.
+ * Dragging is for a mouse only. On a touch screen a drag competes with the
+ * scroll gesture — you reach for the list and the page moves, or the row does
+ * when you meant to scroll — so a finger gets the arrow buttons instead, at a
+ * full 44px tap target. They are also what a keyboard and a screen reader use.
  *
  * Position is the only thing being edited: the numbers are dealt out from the
  * top afterwards, so they cannot end up duplicated or with a gap.
@@ -74,6 +73,8 @@ export function RankBoard({ games }: { games: RankBoardGame[] }) {
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLLIElement>, id: string) {
+    // Touch scrolls the page; reordering there is what the arrows are for.
+    if (e.pointerType === "touch") return;
     if (e.button !== 0 && e.pointerType === "mouse") return;
     e.currentTarget.setPointerCapture(e.pointerId);
     setDragId(id);
@@ -137,8 +138,7 @@ export function RankBoard({ games }: { games: RankBoardGame[] }) {
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}
-              style={{ touchAction: "none" }}
-              className={`flex cursor-grab items-center gap-3 border-b border-rule py-2 select-none ${
+              className={`flex items-center gap-3 border-b border-rule py-1 select-none md:cursor-grab md:py-2 ${
                 dragging ? "bg-panel" : ""
               } ${week.pendingFor(id) ? "opacity-60" : ""}`}
             >
@@ -162,14 +162,16 @@ export function RankBoard({ games }: { games: RankBoardGame[] }) {
               </span>
 
               {/* Drag is the quick way; these always work. */}
-              <span className="flex shrink-0 items-center">
+              {/* Full tap targets on a phone, back to something quiet beside a
+                  mouse where dragging is the faster way. */}
+              <span className="flex shrink-0 items-center gap-0.5">
                 <button
                   type="button"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => moveTo(id, i - 1)}
                   disabled={i === 0}
                   aria-label={`${game.away} bei ${game.home} nach oben`}
-                  className="px-1.5 py-1 text-meta text-n1 disabled:text-n3 hover:text-ink"
+                  className="flex h-11 w-11 items-center justify-center rounded-[3px] text-sm text-n1 hover:bg-sunken hover:text-ink disabled:bg-transparent disabled:text-n3 md:h-8 md:w-8 md:text-meta"
                 >
                   ▲
                 </button>
@@ -179,7 +181,7 @@ export function RankBoard({ games }: { games: RankBoardGame[] }) {
                   onClick={() => moveTo(id, i + 1)}
                   disabled={i === order.length - 1}
                   aria-label={`${game.away} bei ${game.home} nach unten`}
-                  className="px-1.5 py-1 text-meta text-n1 disabled:text-n3 hover:text-ink"
+                  className="flex h-11 w-11 items-center justify-center rounded-[3px] text-sm text-n1 hover:bg-sunken hover:text-ink disabled:bg-transparent disabled:text-n3 md:h-8 md:w-8 md:text-meta"
                 >
                   ▼
                 </button>

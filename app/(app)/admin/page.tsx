@@ -91,68 +91,56 @@ export default async function AdminPage() {
         {keys.length === 0 ? (
           <p className="text-sm text-n1">Noch keine Keys.</p>
         ) : (
-          <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-            <table className="w-full min-w-[38rem] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-rule">
-                  <th scope="col" className="py-2 text-left"><span className="label">Key</span></th>
-                  <th scope="col" className="py-2 pl-3 text-left"><span className="label">Bezeichnung</span></th>
-                  <th scope="col" className="py-2 pl-3 text-right"><span className="label">Genutzt</span></th>
-                  <th scope="col" className="py-2 pl-3 text-left"><span className="label">Status</span></th>
-                  <th scope="col" className="py-2 pl-3"><span className="sr-only">Aktionen</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {keys.map((k) => {
-                  const spent = k.usedCount >= k.maxUses;
-                  const expired = k.expiresAt !== null && k.expiresAt < new Date();
-                  const dead = spent || expired || k.revokedAt !== null;
-                  return (
-                    <tr key={k.code} className="border-b border-rule">
-                      <td className="py-2">
-                        <span
-                          className={`font-mono tracking-[0.06em] ${dead ? "text-n2 line-through" : ""}`}
+          /* A list rather than a table: five columns need 38rem, which is wider
+             than a phone, and a key is read one at a time anyway. */
+          <ul className="border-t border-rule">
+            {keys.map((k) => {
+              const spent = k.usedCount >= k.maxUses;
+              const expired = k.expiresAt !== null && k.expiresAt < new Date();
+              const dead = spent || expired || k.revokedAt !== null;
+              return (
+                <li
+                  key={k.code}
+                  className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-rule py-2.5"
+                >
+                  <span
+                    className={`font-mono tracking-[0.06em] ${dead ? "text-n2 line-through" : ""}`}
+                  >
+                    {k.code}
+                  </span>
+                  <span data-numeric className="font-mono text-meta text-n1">
+                    {k.usedCount}/{k.maxUses}
+                  </span>
+                  <span className="text-meta">
+                    {k.revokedAt ? (
+                      <span className="text-n2">Widerrufen</span>
+                    ) : spent ? (
+                      <span className="text-n2">Aufgebraucht</span>
+                    ) : expired ? (
+                      <span className="text-n2">Abgelaufen</span>
+                    ) : (
+                      <span className="text-correct">Aktiv</span>
+                    )}
+                  </span>
+                  {k.label && <span className="min-w-0 flex-1 text-meta text-n2">{k.label}</span>}
+                  <span className="ml-auto flex items-center gap-1">
+                    {!dead && <CopyKey code={k.code} origin={origin} />}
+                    {!dead && (
+                      <form action={revokeInviteKeyAction}>
+                        <input type="hidden" name="code" value={k.code} />
+                        <button
+                          type="submit"
+                          className="px-2 py-1 text-meta text-n1 hover:text-wrong"
                         >
-                          {k.code}
-                        </span>
-                      </td>
-                      <td className="py-2 pl-3 text-n1">{k.label ?? "—"}</td>
-                      <td data-numeric className="py-2 pl-3 text-right font-mono text-meta">
-                        {k.usedCount}/{k.maxUses}
-                      </td>
-                      <td className="py-2 pl-3 text-meta">
-                        {k.revokedAt ? (
-                          <span className="text-n2">Widerrufen</span>
-                        ) : spent ? (
-                          <span className="text-n2">Aufgebraucht</span>
-                        ) : expired ? (
-                          <span className="text-n2">Abgelaufen</span>
-                        ) : (
-                          <span className="text-correct">Aktiv</span>
-                        )}
-                      </td>
-                      <td className="py-2 pl-3">
-                        <span className="flex items-center justify-end gap-1">
-                          {!dead && <CopyKey code={k.code} origin={origin} />}
-                          {!dead && (
-                            <form action={revokeInviteKeyAction}>
-                              <input type="hidden" name="code" value={k.code} />
-                              <button
-                                type="submit"
-                                className="px-2 py-1 text-meta text-n1 hover:text-wrong"
-                              >
-                                Widerrufen
-                              </button>
-                            </form>
-                          )}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          Widerrufen
+                        </button>
+                      </form>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 
@@ -241,7 +229,7 @@ export default async function AdminPage() {
         )}
 
         <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-          <table className="w-full min-w-[28rem] border-collapse text-sm">
+          <table className="w-full min-w-[19rem] border-collapse text-sm">
             <thead>
               <tr className="border-b border-rule">
                 <th scope="col" className="py-2 text-left"><span className="label">Termin</span></th>

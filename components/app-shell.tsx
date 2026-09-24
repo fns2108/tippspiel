@@ -35,7 +35,7 @@ function navItems(season: number, ordinal: number): NavItem[] {
     {
       href: "/standings",
       label: "Standings",
-      match: (p) => p.startsWith("/standings") || p.startsWith("/u/"),
+      match: (p) => p.startsWith("/standings"),
       Icon: StandingsIcon,
     },
     {
@@ -127,7 +127,10 @@ export function AppShell({
             )}
             <Link
               href={`/u/${encodeURIComponent(username)}`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-[3px] pl-1.5 pr-2 text-sm text-n1 no-underline transition-colors duration-150 hover:bg-sunken hover:text-ink"
+              aria-current={pathname.startsWith("/u/") ? "page" : undefined}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-[3px] pl-1.5 pr-2 text-sm no-underline transition-colors duration-150 hover:bg-sunken hover:text-ink ${
+                pathname.startsWith("/u/") ? "font-medium text-ink" : "text-n1"
+              }`}
             >
               <UserIcon />
               <span className="hidden max-w-28 truncate sm:block">{username}</span>

@@ -171,7 +171,7 @@ export function RankBoard({ games }: { games: RankBoardGame[] }) {
                   onClick={() => moveTo(id, i - 1)}
                   disabled={i === 0}
                   aria-label={`${game.away} bei ${game.home} nach oben`}
-                  className="flex h-11 w-11 items-center justify-center rounded-[3px] text-sm text-n1 hover:bg-sunken hover:text-ink disabled:bg-transparent disabled:text-n3 md:h-8 md:w-8 md:text-meta"
+                  className="flex h-13 w-13 items-center justify-center rounded-[3px] text-lg text-n1 hover:bg-sunken hover:text-ink disabled:bg-transparent disabled:text-n3 md:h-10 md:w-10 md:text-sm"
                 >
                   ▲
                 </button>
@@ -181,7 +181,7 @@ export function RankBoard({ games }: { games: RankBoardGame[] }) {
                   onClick={() => moveTo(id, i + 1)}
                   disabled={i === order.length - 1}
                   aria-label={`${game.away} bei ${game.home} nach unten`}
-                  className="flex h-11 w-11 items-center justify-center rounded-[3px] text-sm text-n1 hover:bg-sunken hover:text-ink disabled:bg-transparent disabled:text-n3 md:h-8 md:w-8 md:text-meta"
+                  className="flex h-13 w-13 items-center justify-center rounded-[3px] text-lg text-n1 hover:bg-sunken hover:text-ink disabled:bg-transparent disabled:text-n3 md:h-10 md:w-10 md:text-sm"
                 >
                   ▼
                 </button>

@@ -99,10 +99,12 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                       <Link
                         href={`/u/${encodeURIComponent(m.username)}`}
                         title={m.username}
-                        /* mx-auto because a capped block keeps its own box to
-                           the left, so a name that fills 5.5rem reads as
-                           off-centre over its column. */
-                        className={`mx-auto block max-w-[5.5rem] truncate text-center text-meta no-underline ${
+                        /* A fixed width rather than a maximum, and set on the
+                           name itself: with automatic table layout the column
+                           is as wide as its widest cell, and nowrap text counts
+                           its full length even when truncated. Pinning it here
+                           is what makes every member column identical. */
+                        className={`mx-auto block w-[7rem] truncate text-center text-meta no-underline ${
                           m.id === user.id ? "font-semibold text-ink" : "text-n1 hover:text-ink"
                         }`}
                       >

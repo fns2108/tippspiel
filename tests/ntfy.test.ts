@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  appUrl,
   encodeHeader,
   generateNtfyTopic,
   isValidNtfyTopic,
@@ -52,6 +53,25 @@ describe("ntfy topics", () => {
     assert.equal(m.title, "Heute: 1 ungetipptes Spiel");
     assert.equal(m.message, "KC @ BUF");
     assert.equal(m.click, undefined, "no link without APP_URL");
+  });
+
+  it("falls back to the domain Vercel provides when APP_URL is unset", () => {
+    const before = { app: process.env.APP_URL, vercel: process.env.VERCEL_PROJECT_PRODUCTION_URL };
+    try {
+      delete process.env.APP_URL;
+      process.env.VERCEL_PROJECT_PRODUCTION_URL = "tippspiel-wedel.vercel.app";
+      assert.equal(appUrl(), "https://tippspiel-wedel.vercel.app");
+
+      process.env.APP_URL = "https://tippspiel.example/";
+      assert.equal(appUrl(), "https://tippspiel.example", "APP_URL wins, without a trailing slash");
+
+      delete process.env.APP_URL;
+      delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+      assert.equal(appUrl(), null);
+    } finally {
+      if (before.app) process.env.APP_URL = before.app;
+      if (before.vercel) process.env.VERCEL_PROJECT_PRODUCTION_URL = before.vercel;
+    }
   });
 
   it("titles the week's picture without naming the winner", () => {

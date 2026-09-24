@@ -25,5 +25,6 @@ jobs:
           echo
           test "$code" = "200"
         env:
-          APP_URL: ${{ secrets.APP_URL }}
+          # Not a secret — just the address. Change it if the domain changes.
+          APP_URL: https://tippspiel-wedel.vercel.app
           CRON_SECRET: ${{ secrets.CRON_SECRET }}

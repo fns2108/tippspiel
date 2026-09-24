@@ -114,9 +114,6 @@ export function NtfySetup({ topic, server }: { topic: string | null; server: str
         </form>
       )}
 
-      <p className="text-meta text-n2">
-        Wer das Topic kennt, kann die Erinnerungen mitlesen. Behalt es für dich.
-      </p>
     </div>
   );
 }

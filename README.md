@@ -83,16 +83,16 @@ Reminders go through [ntfy](https://ntfy.sh), a free notification app for iPhone
 Android. Nothing to configure on the server: each member installs the app, generates a
 topic on their own profile page, and subscribes to it in the app.
 
-Set `APP_URL` to the site's address so reminders link back to it, and `NTFY_SERVER` only if
-you ever self-host ntfy (it defaults to `https://ntfy.sh`).
+Nothing to set: links in notifications use Vercel's own `VERCEL_PROJECT_PRODUCTION_URL`.
+Set `APP_URL` only for a custom domain, and `NTFY_SERVER` only to self-host ntfy.
 
 Reminders go out at 19:00 German time for that day's games, 17:00 and 21:00 on Sundays for
 the two windows, and the week's picture the next morning at 07:00. Vercel's Hobby plan only
 runs a cron job once a day, so the hourly trigger is a GitHub Action in
-`.github/workflows/reminders.yml`. Add two repository secrets under Settings → Secrets and
-variables → Actions: `APP_URL` and `CRON_SECRET`, the same value you put in Vercel. The
-endpoint works out what is due and records what it sent, so calling it hourly sends each
-reminder exactly once.
+`.github/workflows/reminders.yml`. It needs one repository secret, `CRON_SECRET`, with the
+same value as in Vercel; the address itself sits in the workflow file. The endpoint works
+out what is due and records what it sent, so calling it hourly sends each reminder exactly
+once.
 
 A topic is the only thing protecting those messages, so it is generated rather than chosen,
 and anyone who knows it can read them. Without ntfy the app is fully functional — the picks

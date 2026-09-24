@@ -13,6 +13,22 @@ import { randomBytes } from "node:crypto";
  * and are long enough not to be guessed.
  */
 
+/**
+ * Where the site lives, for the links in notifications.
+ *
+ * Vercel always sets `VERCEL_PROJECT_PRODUCTION_URL` at runtime — the project's
+ * production domain, without a scheme — so nothing has to be configured by
+ * hand. `APP_URL` overrides it, which is what a custom domain or a local run
+ * would use.
+ */
+export function appUrl(): string | null {
+  const explicit = process.env.APP_URL?.trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  return vercel ? `https://${vercel.replace(/\/+$/, "")}` : null;
+}
+
 /** Overridable so a self-hosted ntfy can be pointed at instead. */
 export const ntfyServer = (): string =>
   (process.env.NTFY_SERVER || "https://ntfy.sh").replace(/\/+$/, "");

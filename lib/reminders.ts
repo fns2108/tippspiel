@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { games, picks, syncState, users } from "@/lib/db/schema";
-import { ntfyServer, recapTitle, sendNtfy, sendNtfyFile, slotMessage } from "@/lib/ntfy";
+import { appUrl, ntfyServer, recapTitle, sendNtfy, sendNtfyFile, slotMessage } from "@/lib/ntfy";
 import { SERVER_TZ, formatTime } from "@/lib/format";
 import { planReminderSlots, recapInstant } from "@/lib/schedule";
 import { loadShareCard } from "@/lib/share-card";
@@ -46,7 +46,7 @@ export async function sendPickReminders(now: Date = new Date()): Promise<Reminde
   if (ordinal === null) return report;
 
   const ref = weekRef(ordinal);
-  const appUrl = process.env.APP_URL ?? null;
+  const site = appUrl();
 
   const [weekGames, members] = await Promise.all([
     getWeekGames(season, ordinal, now),
@@ -103,7 +103,7 @@ export async function sendPickReminders(now: Date = new Date()): Promise<Reminde
         slotMessage({
           topic: member.topic!,
           games: missing.map((id) => matchup.get(id) ?? "—"),
-          appUrl,
+          appUrl: site,
         }),
       );
 
@@ -112,7 +112,7 @@ export async function sendPickReminders(now: Date = new Date()): Promise<Reminde
     }
   }
 
-  await sendWeekRecap({ season, ordinal, now, members, weekGames, appUrl, report });
+  await sendWeekRecap({ season, ordinal, now, members, weekGames, site, report });
   return report;
 }
 
@@ -138,10 +138,10 @@ async function sendWeekRecap(input: {
   now: Date;
   members: { id: string; username: string; topic: string | null }[];
   weekGames: { kickoff: Date; status: string }[];
-  appUrl: string | null;
+  site: string | null;
   report: ReminderReport;
 }): Promise<void> {
-  const { season, ordinal, now, members, weekGames, appUrl, report } = input;
+  const { season, ordinal, now, members, weekGames, site, report } = input;
 
   const complete = weekGames.length > 0 && weekGames.every((g) => g.status === "post");
   if (!complete) return;
@@ -166,7 +166,7 @@ async function sendWeekRecap(input: {
       bytes: png,
       filename: `tippspiel-woche-${ordinal}-${season}.png`,
       title,
-      ...(appUrl ? { click: `${appUrl.replace(/\/+$/, "")}/share/${ordinal}` } : {}),
+      ...(site ? { click: `${site}/share/${ordinal}` } : {}),
     });
 
     if (result.ok) report.sent++;

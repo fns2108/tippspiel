@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { games, picks } from "@/lib/db/schema";
 import { PICK_ERROR_MESSAGES, rejectPick } from "@/lib/pick-rules";
-import { applyRank, removeRank } from "@/lib/ranks";
+import { applyRank, removeRank, reorderRanks } from "@/lib/ranks";
 
 export type PickResult = { ok: true } | { ok: false; error: string };
 
@@ -100,6 +100,24 @@ export async function setRank(gameId: string, rank: number): Promise<PickResult>
     season: game!.season,
     seasonType: game!.seasonType,
     week: game!.week,
+  });
+  if (result.ok) touched();
+  return result;
+}
+
+/** Saves a whole week's order at once: most confident game first. */
+export async function setRankOrder(gameIds: string[]): Promise<PickResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: PICK_ERROR_MESSAGES.NO_SESSION };
+  if (gameIds.length === 0) return { ok: true };
+
+  const game = await loadGame(gameIds[0]!);
+  if (!game) return { ok: false, error: PICK_ERROR_MESSAGES.NO_SUCH_GAME };
+
+  const result = await reorderRanks(user.id, gameIds, {
+    season: game.season,
+    seasonType: game.seasonType,
+    week: game.week,
   });
   if (result.ok) touched();
   return result;

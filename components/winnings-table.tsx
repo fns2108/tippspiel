@@ -22,6 +22,8 @@ export function WinningsTable({
   if (!payouts.enabled) return null;
 
   const nameById = new Map(members.map((m) => [m.id, m.username]));
+  const names = (ids: string[]) =>
+    ids.map((id) => nameById.get(id) ?? "—").join(", ");
   const rows = [...payouts.byUser.values()]
     .map((r) => ({ ...r, username: nameById.get(r.userId) ?? "—" }))
     .sort(
@@ -55,17 +57,24 @@ export function WinningsTable({
           value={money(payouts.weeklyPrizeCents)}
           sub={`${payouts.payoutWeeks.length} ${payouts.payoutWeeks.length === 1 ? "Woche" : "Wochen"}`}
         />
+        {/* The figure is what was set, not what has quietly rolled into it —
+            an unwon week or a tie's odd cents also end up with the overall
+            winner, and showing that sum reads as the setting being wrong. */}
         <Figure
           label="Gesamtsieger"
-          value={money(payouts.seasonPrizeCents)}
-          sub={payouts.seasonSettled ? "verteilt" : "noch offen"}
+          value={money(payouts.seasonPrizeSetCents)}
+          sub={
+            payouts.seasonLeaderIds.length > 0
+              ? `Aktuell: ${names(payouts.seasonLeaderIds)}`
+              : "noch offen"
+          }
         />
         <Figure
           label="Beste Woche"
           value={money(payouts.bestWeekPrizeCents)}
           sub={
             payouts.bestWeekPoints > 0
-              ? `${payouts.bestWeekPoints} Punkte${payouts.seasonSettled ? "" : " — bisher"}`
+              ? `Aktuell: ${payouts.bestWeekPoints} Punkte (${names(payouts.bestWeekLeaderIds)})`
               : "noch offen"
           }
         />
@@ -74,6 +83,9 @@ export function WinningsTable({
           value={money(payouts.pendingCents)}
           sub={payouts.pendingCents === 0 ? "alles verteilt" : "offene Wochen"}
         />
+        {/* The row is a hairline grid, so a short last line would otherwise
+            show the grid's own colour through the gap. */}
+        <div aria-hidden className="bg-paper lg:hidden" />
       </dl>
 
       <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">

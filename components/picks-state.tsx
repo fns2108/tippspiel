@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState, useTransition } from "react";
-import { clearPick, clearRank, setPick, setRank } from "@/app/actions/picks";
-import { swapRank, type PickState } from "@/lib/rank-swap";
+import { clearPick, clearRank, setPick, setRank, setRankOrder } from "@/app/actions/picks";
+import { assignOrder, swapRank, type PickState } from "@/lib/rank-swap";
 
 /**
  * One week's picks, held above the rows.
@@ -24,6 +24,8 @@ type Ctx = {
   errorFor: (gameId: string) => string | null;
   choose: (gameId: string, teamId: string) => void;
   rankAs: (gameId: string, rank: number | null) => void;
+  /** Open, picked games from most confident to least. */
+  reorder: (orderedOpenIds: string[]) => void;
 };
 
 const PicksContext = createContext<Ctx | null>(null);
@@ -37,10 +39,13 @@ export function usePicks(): Ctx {
 export function PicksProvider({
   initial,
   gameCount,
+  lockedIds = [],
   children,
 }: {
   initial: { gameId: string; teamId: string; rank: number | null }[];
   gameCount: number;
+  /** Games already kicked off: their numbers are spent and cannot be dealt out. */
+  lockedIds?: string[];
   children: React.ReactNode;
 }) {
   const [state, setState] = useState<Map<string, PickState>>(
@@ -128,6 +133,24 @@ export function PicksProvider({
     [state, clearError, fail, mark],
   );
 
+  const reorder = useCallback(
+    (orderedOpenIds: string[]) => {
+      const before = new Map(state);
+      setState(assignOrder(state, orderedOpenIds, lockedIds, gameCount));
+      mark(orderedOpenIds, true);
+
+      startTransition(async () => {
+        const result = await setRankOrder(orderedOpenIds);
+        mark(orderedOpenIds, false);
+        if (!result.ok) {
+          setState(before);
+          fail(orderedOpenIds[0] ?? "", result.error);
+        }
+      });
+    },
+    [state, lockedIds, gameCount, fail, mark],
+  );
+
   const taken = useMemo(
     () =>
       [...state.values()]
@@ -146,8 +169,9 @@ export function PicksProvider({
       errorFor: (gameId) => errors.get(gameId) ?? null,
       choose,
       rankAs,
+      reorder,
     }),
-    [gameCount, state, taken, busy, errors, choose, rankAs],
+    [gameCount, state, taken, busy, errors, choose, rankAs, reorder],
   );
 
   return <PicksContext.Provider value={value}>{children}</PicksContext.Provider>;

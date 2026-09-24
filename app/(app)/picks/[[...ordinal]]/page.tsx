@@ -6,6 +6,7 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { LocalTime } from "@/components/local-time";
 import { PickRow } from "@/components/pick-row";
 import { PicksProvider } from "@/components/picks-state";
+import { RankBoard } from "@/components/rank-board";
 import { WeekRail } from "@/components/week-rail";
 import { requireUser } from "@/lib/auth";
 import { SERVER_TZ, countdown, formatDayAndTime } from "@/lib/format";
@@ -95,12 +96,27 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
 
           <PicksProvider
             gameCount={view.totalGames}
+            lockedIds={view.groups.flatMap((g) => g.games.filter((x) => x.locked).map((x) => x.id))}
             initial={[...view.myPicks.entries()].map(([gameId, p]) => ({
               gameId,
               teamId: p.teamId,
               rank: p.rank,
             }))}
           >
+            <RankBoard
+              games={view.groups.flatMap((group) =>
+                group.games.map((g) => ({
+                  id: g.id,
+                  away: g.away.abbrev,
+                  home: g.home.abbrev,
+                  awayId: g.away.id,
+                  homeId: g.home.id,
+                  neutralSite: g.neutralSite,
+                  locked: g.locked,
+                })),
+              )}
+            />
+
             <div className="space-y-7">
               {view.groups.map((group) => (
               <section key={group.key} aria-labelledby={`day-${group.key}`}>
@@ -127,12 +143,6 @@ export default async function PicksPage({ params }: { params: Promise<Params> })
             </div>
           </PicksProvider>
 
-          <p className="max-w-[46rem] pt-2 text-meta text-n2">
-            Vergib jede Punktzahl von 1 bis {view.totalGames} genau einmal: das Spiel, bei dem du
-            dir am sichersten bist, bekommt {view.totalGames}. Stimmt der Tipp, gibt es so viele
-            Punkte; stimmt er nicht, keine. Wer am Ende der Woche die meisten Punkte hat, gewinnt
-            sie. Die Picks anderer erscheinen hier, sobald das Spiel angepfiffen ist.
-          </p>
         </div>
       )}
     </div>

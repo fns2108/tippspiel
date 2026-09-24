@@ -312,6 +312,28 @@ describe("payouts", () => {
     assert.equal(open.byUser.get("b")!.bestWeekCents, 0);
   });
 
+  it("leaves the best-week prize pending instead of adding it to the overall one", () => {
+    // 125,00 pot, 25,00 overall, 10,00 best week: the weeks divide 90,00 by 18
+    // exactly, so nothing should be left over anywhere.
+    const open = Array.from({ length: 18 }, (_, i) =>
+      week(i + 1, i < 9 ? ["a"] : [], i < 9),
+    );
+    const p = computePayouts(
+      { potCents: 12500, seasonPrizeCents: 2500, bestWeekPrizeCents: 1000, includePlayoffs: false },
+      members,
+      open,
+      ["a"],
+    );
+    assert.equal(p.weeklyPrizeCents, 500);
+    assert.equal(p.seasonPrizeCents, 2500, "the overall prize stays what was set");
+    assert.equal(p.bestWeekPrizeCents, 1000);
+    // Nine unplayed weeks plus the best-week prize are still to be won.
+    assert.equal(p.pendingCents, 9 * 500 + 1000);
+
+    const paid = [...p.byUser.values()].reduce((sum, r) => sum + r.totalCents, 0);
+    assert.equal(paid + p.pendingCents + p.seasonPrizeCents, p.potCents, "the pot adds up");
+  });
+
   it("shares the best week when two members reach the same high", () => {
     const tiedWeek = (ordinal: number, correct: Record<string, number>) => ({
       ordinal,

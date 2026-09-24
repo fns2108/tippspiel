@@ -96,12 +96,18 @@ export type Payouts = {
    * and the odd cents from tied weeks. Only settled at the end of the season.
    */
   seasonPrizeCents: number;
+  /** Exactly what the admin set for the overall winner, before any roll-up. */
+  seasonPrizeSetCents: number;
   /** Set aside for the best single week. Fixed by the settings. */
   bestWeekPrizeCents: number;
   /** The points that won it, or 0 while no payout week has finished. */
   bestWeekPoints: number;
   /** Everyone who reached that score in a payout week; empty until settled. */
   bestWeekWinnerIds: string[];
+  /** Who holds the best week right now, settled or not. */
+  bestWeekLeaderIds: string[];
+  /** Who leads the season right now, settled or not. */
+  seasonLeaderIds: string[];
   /** True once every payout week is complete and the overall prize is settled. */
   seasonSettled: boolean;
   /** Members tied at the top of the season table; empty until settled. */
@@ -165,9 +171,12 @@ export function computePayouts(
       weeklyPrizeCents: 0,
       seasonPrizeFloorCents: 0,
       seasonPrizeCents: 0,
+      seasonPrizeSetCents: 0,
       bestWeekPrizeCents: 0,
       bestWeekPoints: 0,
       bestWeekWinnerIds: [],
+      bestWeekLeaderIds: [],
+      seasonLeaderIds: [],
       seasonSettled: false,
       seasonWinnerIds: [],
       pendingCents: 0,
@@ -248,10 +257,14 @@ export function computePayouts(
     const share = Math.floor(bestWeekPrizeCents / bestWeekWinnerIds.length);
     unsplittable += bestWeekPrizeCents - share * bestWeekWinnerIds.length;
     for (const id of bestWeekWinnerIds) byUser.get(id)!.bestWeekCents = share;
-  } else {
-    // Nobody eligible — the money joins the overall winner's, like a week
-    // nobody won.
+  } else if (seasonSettled) {
+    // Settled with nobody eligible — the money joins the overall winner's,
+    // like a week nobody won.
     unsplittable += bestWeekPrizeCents;
+  } else {
+    // Still to be won. Rolling it up now would quietly inflate the overall
+    // prize for the whole season, which is not what was set.
+    pendingCents += bestWeekPrizeCents;
   }
 
   const seasonPrizeCents = seasonBase + unsplittable;
@@ -284,9 +297,12 @@ export function computePayouts(
     weeklyPrizeCents,
     seasonPrizeFloorCents,
     seasonPrizeCents,
+    seasonPrizeSetCents: seasonBase,
     bestWeekPrizeCents,
     bestWeekPoints,
     bestWeekWinnerIds,
+    bestWeekLeaderIds: [...bestWeekIds],
+    seasonLeaderIds: seasonLeaderIds.filter((id) => byUser.has(id)),
     seasonSettled,
     seasonWinnerIds,
     pendingCents,

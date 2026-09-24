@@ -34,3 +34,37 @@ export function swapRank(
 
   return { next, displaced };
 }
+
+/**
+ * The optimistic half of a drag: what the week looks like once a new order is
+ * dropped, before the server has answered.
+ *
+ * Mirrors `reorderRanks` in lib/ranks.ts. Locked games keep the numbers they
+ * were picked with, and the open games take whatever is left, biggest first —
+ * so the top of the list is always the most confident pick.
+ */
+export function assignOrder(
+  state: Map<string, PickState>,
+  orderedOpenIds: string[],
+  lockedIds: Iterable<string>,
+  gameCount: number,
+): Map<string, PickState> {
+  const locked = new Set(lockedIds);
+  const spent = new Set(
+    [...state.entries()]
+      .filter(([id, p]) => locked.has(id) && p.rank !== null)
+      .map(([, p]) => p.rank as number),
+  );
+
+  const available: number[] = [];
+  for (let n = gameCount; n >= 1; n--) if (!spent.has(n)) available.push(n);
+
+  const next = new Map(state);
+  orderedOpenIds.forEach((id, i) => {
+    const mine = state.get(id);
+    if (!mine) return;
+    next.set(id, { ...mine, rank: available[i] ?? null });
+  });
+  return next;
+}
+

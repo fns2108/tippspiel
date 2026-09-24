@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
   // Team logos are downloaded into /public/teams at seed time, so there is no
   // third-party image host to allowlist. See scripts/seed-teams.ts.
 
-  // These load native assets by filesystem path and must not be bundled.
-  serverExternalPackages: ["postgres", "web-push"],
+  // Loads native assets by filesystem path and must not be bundled.
+  serverExternalPackages: ["postgres"],
 
   // The share image renders with the brand faces, which means reading the TTFs
   // off disk. Nothing imports them, so the build's file tracing cannot find

@@ -226,14 +226,12 @@ export default async function AdminPage() {
         <div className="rule-head">
           <h2 id="reminders">Erinnerungen</h2>
           <p className="label">
-            {reminders.configured ? "Push aktiv" : "Push nicht konfiguriert"}
+            {reminders.server.replace(/^https?:\/\//, "")}
           </p>
         </div>
         <p className="max-w-[62ch] text-sm text-n1">
-          Einmal am Tag, an jeden mit offenen Spielen, die innerhalb von{" "}
-          {reminders.horizonHours} Stunden anpfeifen. Gerade sind{" "}
-          <strong className="font-mono tabular-nums">{reminders.dueSoon}</strong> Spiele in
-          diesem Fenster.
+          19:00 für die Spiele des Tages, sonntags 17:00 und 21:00 für die beiden Fenster, und
+          am Morgen nach dem letzten Spiel um 07:00 das Bild der Woche.
         </p>
 
         {reminders.reason && (
@@ -243,33 +241,44 @@ export default async function AdminPage() {
         )}
 
         <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-          <table className="w-full min-w-[30rem] border-collapse text-sm">
+          <table className="w-full min-w-[28rem] border-collapse text-sm">
             <thead>
               <tr className="border-b border-rule">
-                <th scope="col" className="py-2 text-left"><span className="label">Mitglied</span></th>
-                <th scope="col" className="py-2 pl-3 text-right"><span className="label">Offen</span></th>
-                <th scope="col" className="py-2 pl-3 text-right"><span className="label">Geräte</span></th>
-                <th scope="col" className="py-2 pl-3 text-left"><span className="label">Heute schon</span></th>
+                <th scope="col" className="py-2 text-left"><span className="label">Termin</span></th>
+                <th scope="col" className="py-2 pl-3 text-right"><span className="label">Spiele</span></th>
+                <th scope="col" className="py-2 pl-3 text-left"><span className="label">Status</span></th>
               </tr>
             </thead>
             <tbody>
-              {reminders.members.map((m) => (
-                <tr key={m.username} className="border-b border-rule">
-                  <td className="py-2">{m.username}</td>
-                  <td data-numeric className="py-2 pl-3 text-right font-mono text-meta">
-                    {m.open}
+              {reminders.slots.length === 0 && (
+                <tr className="border-b border-rule">
+                  <td colSpan={3} className="py-2 text-n1">
+                    Für diese Woche sind noch keine Spiele angesetzt.
                   </td>
+                </tr>
+              )}
+              {reminders.slots.map((slot) => (
+                <tr key={slot.label} className="border-b border-rule">
+                  <td className="py-2">{slot.label}</td>
                   <td data-numeric className="py-2 pl-3 text-right font-mono text-meta">
-                    {m.subscriptions === 0 ? <span className="text-n3">—</span> : m.subscriptions}
+                    {slot.games}
                   </td>
                   <td className="py-2 pl-3 text-meta text-n1">
-                    {m.alreadyToday ? "ja" : "nein"}
+                    {!slot.due ? "steht aus" : slot.open ? "fällig" : "durch"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        <p className="max-w-[62ch] text-meta text-n2">
+          Mitglieder mit ntfy:{" "}
+          {reminders.members.filter((m) => m.hasTopic).length}/{reminders.members.length}
+          {reminders.members.some((m) => !m.hasTopic) && (
+            <> — ohne Topic: {reminders.members.filter((m) => !m.hasTopic).map((m) => m.username).join(", ")}</>
+          )}
+        </p>
 
         <p className="max-w-[62ch] text-meta text-n2">
           Der Test geht nur an dich, ignoriert das Zeitfenster und die Einmal-pro-Tag-Sperre,

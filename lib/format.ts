@@ -62,6 +62,76 @@ export function nflDayShort(kickoff: Date): string {
   return DAY_SHORT[weekday] ?? weekday.toUpperCase();
 }
 
+/** The hour of kickoff on the NFL's own clock, 0..23 — used to tell the
+ * Sunday windows apart. */
+export function nflHour(kickoff: Date): number {
+  return Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: NFL_TZ,
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(kickoff),
+  );
+}
+
+/** True for a game the NFL calls a Sunday game, whatever the German date is. */
+export function isNflSunday(kickoff: Date): boolean {
+  return easternParts(kickoff).weekday === "Sun";
+}
+
+function zoneOffsetMs(at: Date, timeZone: string): number {
+  const p = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  })
+    .formatToParts(at)
+    .reduce<Record<string, string>>((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {});
+
+  const asUtc = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour),
+    Number(p.minute),
+    Number(p.second),
+  );
+  return asUtc - at.getTime();
+}
+
+/**
+ * The instant at which a given wall clock time happens in a time zone.
+ *
+ * "19:00 in Berlin" is a different moment in summer and winter, and reminders
+ * are specified in local evenings rather than in UTC. The offset is read at the
+ * guessed instant and then subtracted, which is correct except inside the one
+ * hour a year that the clocks skip — and nothing here is scheduled at 02:00.
+ */
+export function zonedInstant(dateKey: string, hour: number, timeZone: string): Date {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const guess = Date.UTC(year!, month! - 1, day!, hour);
+  return new Date(guess - zoneOffsetMs(new Date(guess), timeZone));
+}
+
+/** The calendar date in a zone, as the "YYYY-MM-DD" key the schedule uses. */
+export function zonedDateKey(at: Date, timeZone: string): string {
+  const p = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(at);
+  return p;
+}
+
 /** Calendar date without a weekday — for "member since", not for kickoffs. */
 export function formatDate(d: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("de-DE", {

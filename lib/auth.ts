@@ -46,6 +46,8 @@ export type SessionUser = {
   isAdmin: boolean;
   /** Signed in on a temporary password; see users.mustChangePassword. */
   mustChangePassword: boolean;
+  /** Where reminders go, or null. See lib/ntfy.ts. */
+  ntfyTopic: string | null;
 };
 
 /** The current user, or null. Safe to call from any server component. */
@@ -61,6 +63,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       usernameLower: users.usernameLower,
       isAdmin: users.isAdmin,
       mustChangePassword: users.mustChangePassword,
+      ntfyTopic: users.ntfyTopic,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
@@ -72,6 +75,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     username: row.username,
     isAdmin: resolveIsAdmin(row.usernameLower, row.isAdmin),
     mustChangePassword: row.mustChangePassword,
+    ntfyTopic: row.ntfyTopic,
   };
 }
 
@@ -168,7 +172,7 @@ export async function registerUser(input: {
     }
 
     await tx.insert(inviteRedemptions).values({ code, userId: id });
-    return { id, username, isAdmin, mustChangePassword: false };
+    return { id, username, isAdmin, mustChangePassword: false, ntfyTopic: null };
   });
 }
 
@@ -185,6 +189,7 @@ export async function authenticate(
       isAdmin: users.isAdmin,
       passwordHash: users.passwordHash,
       mustChangePassword: users.mustChangePassword,
+      ntfyTopic: users.ntfyTopic,
     })
     .from(users)
     .where(eq(users.usernameLower, usernameLower));
@@ -202,6 +207,7 @@ export async function authenticate(
     username: row.username,
     isAdmin: resolveIsAdmin(usernameLower, row.isAdmin),
     mustChangePassword: row.mustChangePassword,
+    ntfyTopic: row.ntfyTopic,
   };
 }
 

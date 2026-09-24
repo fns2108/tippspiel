@@ -183,7 +183,7 @@ export async function sendTestReminderAction(
    * Nothing below is allowed to throw out of this action. A server action that
    * throws leaves `useActionState` holding its previous state, so the form
    * renders no message at all and the button looks broken — which is exactly
-   * how a bad VAPID key used to present.
+   * how a broken notification setup used to present.
    */
   let report;
   try {
@@ -194,35 +194,16 @@ export async function sendTestReminderAction(
   }
 
   if (!report.configured) {
-    return {
-      error: report.reason ?? "Push ist nicht konfiguriert.",
-      notice: null,
-    };
-  }
-  if (report.subscriptions === 0) {
-    return {
-      error:
-        "Für dich ist kein Gerät angemeldet. Schalte Erinnerungen erst auf deiner Profilseite " +
-        "ein — auf dem iPhone nur, wenn die Seite auf dem Home-Bildschirm liegt.",
-      notice: null,
-    };
+    return { error: report.reason ?? "Erinnerungen sind nicht eingerichtet.", notice: null };
   }
   if (report.sent === 0) {
     return {
-      error:
-        `Kein Versand geklappt (${report.subscriptions} Gerät(e)` +
-        `${report.removed > 0 ? `, ${report.removed} abgelaufen und entfernt` : ""})` +
-        `${report.errors.length > 0 ? `: ${report.errors.join(", ")}` : "."}`,
+      error: `Versand fehlgeschlagen${report.errors.length > 0 ? `: ${report.errors.join(", ")}` : "."}`,
       notice: null,
     };
   }
 
-  return {
-    error: null,
-    notice:
-      `Test an ${report.sent} ${report.sent === 1 ? "Gerät" : "Geräte"} geschickt.` +
-      (report.removed > 0 ? ` ${report.removed} abgelaufene entfernt.` : ""),
-  };
+  return { error: null, notice: "Test an dein ntfy-Topic geschickt." };
 }
 
 /** Every page that shows a points total. */

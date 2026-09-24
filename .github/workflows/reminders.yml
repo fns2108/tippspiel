@@ -1,0 +1,29 @@
+# Pings the app once an hour so reminders can go out at 17:00, 19:00, 21:00 and
+# 07:00 German time.
+#
+# Vercel's Hobby plan runs a cron job once a day, which cannot cover four times.
+# The endpoint decides for itself what is due and records what it has sent, so
+# calling it hourly sends each reminder exactly once — and a missed run only
+# delays a message rather than losing it.
+name: Erinnerungen
+
+on:
+  schedule:
+    - cron: "5 * * * *" # every hour, five past
+  workflow_dispatch: # and on demand, from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the cron endpoint
+        run: |
+          code=$(curl -sS -o /tmp/out.json -w '%{http_code}' \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron")
+          cat /tmp/out.json
+          echo
+          test "$code" = "200"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

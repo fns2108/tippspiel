@@ -4,7 +4,7 @@
 
 ## Platform
 
-web (mobile-first; installable as a PWA so iOS can receive push reminders)
+web (mobile-first; reminders are delivered through the ntfy app)
 
 ## Stack
 
@@ -93,7 +93,8 @@ Confirmed functionality:
   season total.
 - Analytics: live and past weekly rankings, the season table, and per-team consensus —
   how often the group picked each team and how often that was correct.
-- Pick reminders: an in-app banner for unpicked games plus optional web push.
+- Pick reminders: an in-app banner for unpicked games plus optional notifications through
+  ntfy, a free app the member subscribes to with a generated topic.
 - Admin: generate and revoke invite keys, force a data resync, override a game result if
   the upstream feed is ever wrong.
 

@@ -3,10 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { logoutAction } from "@/app/actions/auth";
 import { LogoutIcon } from "@/components/icons";
-import { PushToggle } from "@/components/push-toggle";
+import { NtfySetup } from "@/components/ntfy-setup";
 import { TeamConsensus } from "@/components/team-consensus";
 import { requireUser } from "@/lib/auth";
 import { pct } from "@/lib/format";
+import { ntfyServer } from "@/lib/ntfy";
 import { currentSeason } from "@/lib/nfl/season";
 import {
   findUserByUsername,
@@ -174,7 +175,7 @@ export default async function ProfilePage({
           <div className="rule-head">
             <h2 id="account">Konto</h2>
           </div>
-          <PushToggle />
+          <NtfySetup topic={viewer.ntfyTopic} server={ntfyServer()} />
           <form action={logoutAction}>
             <button type="submit" className="btn btn-secondary">
               <LogoutIcon />

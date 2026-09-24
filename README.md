@@ -79,15 +79,24 @@ a copy button next to each key.
 
 ### Reminders (optional)
 
-```bash
-npx web-push generate-vapid-keys
-```
+Reminders go through [ntfy](https://ntfy.sh), a free notification app for iPhone and
+Android. Nothing to configure on the server: each member installs the app, generates a
+topic on their own profile page, and subscribes to it in the app.
 
-Add `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`
-(`mailto:you@example.com`) to Vercel and redeploy. Members turn reminders on from their own
-profile page. Without these the app is fully functional — the picks page still shows an
-open-games banner. On iPhone, notifications only work once the site is added to the Home
-Screen; the app says so when it detects it.
+Set `APP_URL` to the site's address so reminders link back to it, and `NTFY_SERVER` only if
+you ever self-host ntfy (it defaults to `https://ntfy.sh`).
+
+Reminders go out at 19:00 German time for that day's games, 17:00 and 21:00 on Sundays for
+the two windows, and the week's picture the next morning at 07:00. Vercel's Hobby plan only
+runs a cron job once a day, so the hourly trigger is a GitHub Action in
+`.github/workflows/reminders.yml`. Add two repository secrets under Settings → Secrets and
+variables → Actions: `APP_URL` and `CRON_SECRET`, the same value you put in Vercel. The
+endpoint works out what is due and records what it sent, so calling it hourly sends each
+reminder exactly once.
+
+A topic is the only thing protecting those messages, so it is generated rather than chosen,
+and anyone who knows it can read them. Without ntfy the app is fully functional — the picks
+page still shows an open-games banner.
 
 ### Updating
 

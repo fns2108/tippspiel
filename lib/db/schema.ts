@@ -29,6 +29,12 @@ export const users = pgTable(
      * ever good for the one login that replaces it.
      */
     mustChangePassword: boolean("must_change_password").notNull().default(false),
+    /**
+     * ntfy topic this member subscribed to in the ntfy app, or null for no
+     * reminders. The topic is the only secret there is — anyone who knows it
+     * can read and post to it — so it is generated, never chosen.
+     */
+    ntfyTopic: text("ntfy_topic"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
@@ -76,22 +82,6 @@ export const sessions = pgTable(
   },
   (t) => ({
     userIdx: index("sessions_user_idx").on(t.userId),
-  }),
-);
-
-export const pushSubscriptions = pgTable(
-  "push_subscriptions",
-  {
-    endpoint: text("endpoint").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    p256dh: text("p256dh").notNull(),
-    auth: text("auth").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => ({
-    userIdx: index("push_subscriptions_user_idx").on(t.userId),
   }),
 );
 

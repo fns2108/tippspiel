@@ -1,252 +1,219 @@
 import "server-only";
-import { and, eq, gt, isNull, lt, sql } from "drizzle-orm";
-import webpush from "web-push";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { games, picks, pushSubscriptions, syncState, users } from "@/lib/db/schema";
-import { countdown } from "@/lib/format";
+import { games, picks, syncState, users } from "@/lib/db/schema";
+import { ntfyServer, recapTitle, sendNtfy, sendNtfyFile, slotMessage } from "@/lib/ntfy";
+import { SERVER_TZ, formatTime } from "@/lib/format";
+import { planReminderSlots, recapInstant } from "@/lib/schedule";
+import { loadShareCard } from "@/lib/share-card";
+import { loadFonts, renderShareCard } from "@/lib/share-image";
+import { getCurrentWeekOrdinal, getWeekGames } from "@/lib/queries";
 import { currentSeason, weekRef } from "@/lib/nfl/season";
-import { getCurrentWeekOrdinal } from "@/lib/queries";
-
-const HORIZON_HOURS = 48;
 
 export type ReminderReport = {
   configured: boolean;
   /** Why not, when `configured` is false. */
   reason: string | null;
+  /** Members with a topic, i.e. who could receive anything at all. */
   considered: number;
   sent: number;
+  /** Already sent earlier, or nothing outstanding for them. */
   skipped: number;
-  removed: number;
   errors: string[];
 };
 
-export type VapidStatus = { ok: boolean; reason: string | null };
-
 /**
- * Checks the push configuration without ever throwing.
+ * Sends whatever is due right now.
  *
- * `setVapidDetails` validates as it goes and throws on a malformed key or a
- * subject that is not a mailto/https url. Letting that escape is worse than it
- * sounds: thrown out of a server action it leaves the form with no state to
- * render, so the button looks dead, and thrown out of the cron route it takes
- * the whole scheduled run down with it. So it is caught here and turned into a
- * reason the interface can actually show.
- */
-export function vapidStatus(): VapidStatus {
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim();
-  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
-  const subject = process.env.VAPID_SUBJECT?.trim() || "mailto:admin@example.com";
-
-  const missing = [
-    publicKey ? null : "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
-    privateKey ? null : "VAPID_PRIVATE_KEY",
-  ].filter(Boolean);
-
-  if (missing.length > 0) {
-    return {
-      ok: false,
-      reason: `${missing.join(" und ")} ${missing.length === 1 ? "fehlt" : "fehlen"} in den Environment Variables.`,
-    };
-  }
-
-  try {
-    webpush.setVapidDetails(subject, publicKey!, privateKey!);
-    return { ok: true, reason: null };
-  } catch (err) {
-    return {
-      ok: false,
-      reason: `VAPID-Konfiguration ungültig: ${(err as Error).message} (VAPID_SUBJECT ist "${subject}")`,
-    };
-  }
-}
-
-function configure(): boolean {
-  return vapidStatus().ok;
-}
-
-/**
- * One nudge per member per day, while they still have unpicked games that lock
- * within the next two days.
- *
- * Idempotent by design: it stamps a per-member, per-day key, so it is safe to
- * call on any cadence. Vercel's free plan allows one scheduled job a day, which
- * is what this is built around; pointing an external pinger at it more often
- * simply makes the timing tighter without sending anyone a second copy.
+ * The schedule lives in lib/schedule.ts and is expressed as "due at", so this
+ * has no cadence of its own: call it hourly and each reminder goes out once,
+ * within the hour it was due. Every message is claimed in `sync_state` before
+ * it is sent, so a second call — or two overlapping ones — cannot repeat it,
+ * and a missed hour only delays a reminder rather than losing it.
  */
 export async function sendPickReminders(now: Date = new Date()): Promise<ReminderReport> {
-  const status = vapidStatus();
   const report: ReminderReport = {
-    configured: false,
-    reason: status.reason,
+    configured: true,
+    reason: null,
     considered: 0,
     sent: 0,
     skipped: 0,
-    removed: 0,
     errors: [],
   };
-
-  if (!configure()) return report;
-  report.configured = true;
 
   const season = currentSeason(now);
   const ordinal = await getCurrentWeekOrdinal(season);
   if (ordinal === null) return report;
 
   const ref = weekRef(ordinal);
-  const horizon = new Date(now.getTime() + HORIZON_HOURS * 3_600_000);
+  const appUrl = process.env.APP_URL ?? null;
 
-  // Members with at least one game that is still open, locks soon, and has no
-  // pick from them.
-  const rows = await db
-    .select({
-      userId: users.id,
-      username: users.username,
-      open: sql<number>`count(*)::int`,
-      firstLock: sql<Date>`min(${games.kickoff})`,
-    })
-    .from(users)
-    .innerJoin(
-      games,
+  const [weekGames, members] = await Promise.all([
+    getWeekGames(season, ordinal, now),
+    db
+      .select({ id: users.id, username: users.username, topic: users.ntfyTopic })
+      .from(users)
+      .where(isNotNull(users.ntfyTopic)),
+  ]);
+
+  report.considered = members.length;
+  if (members.length === 0 || weekGames.length === 0) return report;
+
+  const mine = await db
+    .select({ userId: picks.userId, gameId: picks.gameId })
+    .from(picks)
+    .innerJoin(games, eq(games.id, picks.gameId))
+    .where(
       and(
         eq(games.season, season),
         eq(games.seasonType, ref.seasonType),
         eq(games.week, ref.week),
-        gt(games.kickoff, now),
-        lt(games.kickoff, horizon),
       ),
-    )
-    .leftJoin(picks, and(eq(picks.gameId, games.id), eq(picks.userId, users.id)))
-    .where(isNull(picks.teamId))
-    .groupBy(users.id, users.username);
+    );
+  const picked = new Set(mine.map((p) => `${p.userId}:${p.gameId}`));
 
-  report.considered = rows.length;
-  const day = now.toISOString().slice(0, 10);
+  const kickoffById = new Map(weekGames.map((g) => [g.id, g.kickoff]));
+  const matchup = new Map(
+    weekGames.map((g) => [g.id, `${g.away.abbrev} ${g.neutralSite ? "vs" : "@"} ${g.home.abbrev}`]),
+  );
+  const slots = planReminderSlots(
+    weekGames.map((g) => ({ id: g.id, kickoff: g.kickoff })),
+    SERVER_TZ,
+  );
 
-  for (const row of rows) {
-    const stampKey = `reminder:${row.userId}:${day}`;
+  for (const slot of slots) {
+    if (slot.at > now) continue;
 
-    // Claim the day's slot first. If the insert finds an existing row, someone
-    // (or an earlier call) already notified this member today.
-    const claimed = await db
-      .insert(syncState)
-      .values({ key: stampKey, lastSyncedAt: now })
-      .onConflictDoNothing()
-      .returning({ key: syncState.key });
+    // A game that has already kicked off can no longer be picked, so it is not
+    // worth reminding about even if the slot is only now being processed.
+    const stillOpen = slot.gameIds.filter((id) => (kickoffById.get(id) ?? now) > now);
+    if (stillOpen.length === 0) continue;
 
-    if (claimed.length === 0) {
-      report.skipped++;
-      continue;
-    }
+    for (const member of members) {
+      const missing = stillOpen.filter((id) => !picked.has(`${member.id}:${id}`));
+      if (missing.length === 0) continue;
 
-    const subs = await db
-      .select()
-      .from(pushSubscriptions)
-      .where(eq(pushSubscriptions.userId, row.userId));
-
-    if (subs.length === 0) {
-      report.skipped++;
-      continue;
-    }
-
-    const firstLock = new Date(row.firstLock);
-    const payload = JSON.stringify({
-      title: `${row.open} ${row.open === 1 ? "Spiel" : "Spiele"} noch offen`,
-      body: `${ref.label} — erster Kickoff in ${countdown(firstLock, now)}.`,
-      tag: `pickem-${ref.ordinal}`,
-      url: "/picks",
-    });
-
-    for (const sub of subs) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-        );
-        report.sent++;
-      } catch (err) {
-        const status = (err as { statusCode?: number }).statusCode;
-        // 404/410 mean the browser threw the subscription away; stop storing it.
-        if (status === 404 || status === 410) {
-          await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, sub.endpoint));
-          report.removed++;
-        } else {
-          report.errors.push(`${row.username}: ${status ?? "send failed"}`);
-        }
+      const claimed = await claim(`remind:${member.id}:${slot.id}`, now);
+      if (!claimed) {
+        report.skipped++;
+        continue;
       }
+
+      const result = await sendNtfy(
+        slotMessage({
+          topic: member.topic!,
+          games: missing.map((id) => matchup.get(id) ?? "—"),
+          appUrl,
+        }),
+      );
+
+      if (result.ok) report.sent++;
+      else report.errors.push(`${member.username}: ${result.error}`);
     }
   }
 
+  await sendWeekRecap({ season, ordinal, now, members, weekGames, appUrl, report });
   return report;
+}
+
+/**
+ * Claims a one-off job. Returns false if someone already did it.
+ *
+ * The whole schedule is driven by "is it due yet", so every message would go
+ * out again on the next ping without this.
+ */
+async function claim(key: string, now: Date): Promise<boolean> {
+  const rows = await db
+    .insert(syncState)
+    .values({ key, lastSyncedAt: now })
+    .onConflictDoNothing()
+    .returning({ key: syncState.key });
+  return rows.length > 0;
+}
+
+/** The week's picture, the morning after the last game. */
+async function sendWeekRecap(input: {
+  season: number;
+  ordinal: number;
+  now: Date;
+  members: { id: string; username: string; topic: string | null }[];
+  weekGames: { kickoff: Date; status: string }[];
+  appUrl: string | null;
+  report: ReminderReport;
+}): Promise<void> {
+  const { season, ordinal, now, members, weekGames, appUrl, report } = input;
+
+  const complete = weekGames.length > 0 && weekGames.every((g) => g.status === "post");
+  if (!complete) return;
+
+  const last = weekGames.reduce((a, b) => (a.kickoff > b.kickoff ? a : b)).kickoff;
+  if (recapInstant(last, SERVER_TZ) > now) return;
+
+  // Drawn once and sent to everyone: rendering is the expensive part.
+  const card = await loadShareCard(season, ordinal);
+  const title = recapTitle(card.ref.label);
+  const png = Buffer.from(await renderShareCard(card, await loadFonts()).arrayBuffer());
+
+  for (const member of members) {
+    const claimed = await claim(`recap:${season}:${ordinal}:${member.id}`, now);
+    if (!claimed) {
+      report.skipped++;
+      continue;
+    }
+
+    const result = await sendNtfyFile({
+      topic: member.topic!,
+      bytes: png,
+      filename: `tippspiel-woche-${ordinal}-${season}.png`,
+      title,
+      ...(appUrl ? { click: `${appUrl.replace(/\/+$/, "")}/share/${ordinal}` } : {}),
+    });
+
+    if (result.ok) report.sent++;
+    else report.errors.push(`${member.username}: ${result.error}`);
+  }
 }
 
 export type TestReminderReport = {
   configured: boolean;
   reason: string | null;
-  subscriptions: number;
   sent: number;
-  removed: number;
   errors: string[];
 };
 
 /**
  * Sends one notification to a single member, right now.
  *
- * Deliberately ignores both gates the real job depends on — the 48-hour
- * horizon and the once-a-day stamp — because those are exactly what make the
- * real job impossible to test on demand: out of season nobody qualifies, and
- * in season it will only fire once per member per day.
- *
- * It touches nothing: no stamp is written, so a test can never consume the
- * day's real reminder, and running it twice sends twice.
+ * Ignores both gates the real job depends on — the 48-hour horizon and the
+ * once-a-day stamp — because those are what make the real job impossible to
+ * test on demand. It writes no stamp, so a test never consumes the day's real
+ * reminder.
  */
 export async function sendTestReminder(userId: string): Promise<TestReminderReport> {
-  const status = vapidStatus();
-  const report: TestReminderReport = {
-    configured: false,
-    reason: status.reason,
-    subscriptions: 0,
-    sent: 0,
-    removed: 0,
-    errors: [],
-  };
+  const report: TestReminderReport = { configured: true, reason: null, sent: 0, errors: [] };
 
-  if (!configure()) return report;
-  report.configured = true;
+  const [row] = await db
+    .select({ topic: users.ntfyTopic })
+    .from(users)
+    .where(eq(users.id, userId));
 
-  const subs = await db
-    .select()
-    .from(pushSubscriptions)
-    .where(eq(pushSubscriptions.userId, userId));
+  if (!row?.topic) {
+    report.configured = false;
+    report.reason =
+      "Für dich ist kein ntfy-Topic hinterlegt. Trag es auf deiner Profilseite ein.";
+    return report;
+  }
 
-  report.subscriptions = subs.length;
-  if (subs.length === 0) return report;
-
-  const payload = JSON.stringify({
+  const result = await sendNtfy({
+    topic: row.topic,
     title: "Test",
-    body: "Erinnerungen funktionieren. Das war ein Test.",
-    // A tag of its own, so a test never replaces a real reminder in the tray.
-    tag: "pickem-test",
-    url: "/picks",
+    message: "Erinnerungen funktionieren. Das war ein Test.",
+    tags: ["white_check_mark"],
+    ...(process.env.APP_URL ? { click: `${process.env.APP_URL.replace(/\/+$/, "")}/picks` } : {}),
   });
 
-  for (const sub of subs) {
-    try {
-      await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        payload,
-      );
-      report.sent++;
-    } catch (err) {
-      const status = (err as { statusCode?: number }).statusCode;
-      // 404/410 mean the browser threw the subscription away; stop storing it.
-      if (status === 404 || status === 410) {
-        await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, sub.endpoint));
-        report.removed++;
-      } else {
-        report.errors.push(String(status ?? (err as Error).message));
-      }
-    }
-  }
+  if (result.ok) report.sent++;
+  else report.errors.push(result.error);
 
   return report;
 }
@@ -255,63 +222,49 @@ export async function sendTestReminder(userId: string): Promise<TestReminderRepo
 export async function previewReminders(now: Date = new Date()): Promise<{
   configured: boolean;
   reason: string | null;
+  server: string;
   season: number;
   ordinal: number | null;
-  horizonHours: number;
-  dueSoon: number;
-  members: { username: string; open: number; subscriptions: number; alreadyToday: boolean }[];
+  slots: { label: string; at: Date; games: number; open: boolean; due: boolean }[];
+  members: { username: string; hasTopic: boolean }[];
 }> {
   const season = currentSeason(now);
   const ordinal = await getCurrentWeekOrdinal(season);
-  const status = vapidStatus();
+
+  const members = await db
+    .select({ username: users.username, hasTopic: sql<boolean>`${users.ntfyTopic} is not null` })
+    .from(users)
+    .orderBy(users.usernameLower);
+
+  const anyTopics = members.some((m) => m.hasTopic);
   const base = {
-    configured: status.ok,
-    reason: status.reason,
+    // ntfy needs no server-side keys; the only prerequisite is a subscriber.
+    configured: anyTopics,
+    reason: anyTopics
+      ? null
+      : "Noch niemand hat ein ntfy-Topic hinterlegt. Das geht auf der eigenen Profilseite.",
+    server: ntfyServer(),
     season,
     ordinal,
-    horizonHours: HORIZON_HOURS,
+    members,
   };
-  if (ordinal === null) return { ...base, dueSoon: 0, members: [] };
+  if (ordinal === null) return { ...base, slots: [] };
 
-  const ref = weekRef(ordinal);
-  const horizon = new Date(now.getTime() + HORIZON_HOURS * 3_600_000);
+  const weekGames = await getWeekGames(season, ordinal, now);
+  const slots = planReminderSlots(
+    weekGames.map((g) => ({ id: g.id, kickoff: g.kickoff })),
+    SERVER_TZ,
+  );
+  const kickoffById = new Map(weekGames.map((g) => [g.id, g.kickoff]));
 
-  const [{ dueSoon }] = await db
-    .select({ dueSoon: sql<number>`count(*)::int` })
-    .from(games)
-    .where(
-      and(
-        eq(games.season, season),
-        eq(games.seasonType, ref.seasonType),
-        eq(games.week, ref.week),
-        gt(games.kickoff, now),
-        lt(games.kickoff, horizon),
-      ),
-    );
-
-  const day = now.toISOString().slice(0, 10);
-  const rows = await db
-    .select({
-      username: users.username,
-      // count(games.id), not count(*): with no games in the horizon the left
-      // join still yields one row per member, and count(*) would call that 1.
-      open: sql<number>`count(${games.id}) filter (where ${picks.teamId} is null)::int`,
-      subscriptions: sql<number>`(select count(*)::int from ${pushSubscriptions} s where s.user_id = ${users.id})`,
-      alreadyToday: sql<boolean>`exists (select 1 from ${syncState} st where st.key = 'reminder:' || ${users.id} || ':' || ${day})`,
-    })
-    .from(users)
-    .leftJoin(
-      games,
-      and(
-        eq(games.season, season),
-        eq(games.seasonType, ref.seasonType),
-        eq(games.week, ref.week),
-        gt(games.kickoff, now),
-        lt(games.kickoff, horizon),
-      ),
-    )
-    .leftJoin(picks, and(eq(picks.gameId, games.id), eq(picks.userId, users.id)))
-    .groupBy(users.id, users.username);
-
-  return { ...base, dueSoon, members: rows };
+  return {
+    ...base,
+    slots: slots.map((slot) => ({
+      label: `${slot.dayLabel}, ${formatTime(slot.at, SERVER_TZ)}`,
+      at: slot.at,
+      games: slot.gameIds.length,
+      open: slot.gameIds.some((id) => (kickoffById.get(id) ?? now) > now),
+      due: slot.at <= now,
+    })),
+  };
 }

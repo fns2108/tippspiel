@@ -31,15 +31,13 @@
     "postgres": "^3.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "server-only": "^0.0.1",
-    "web-push": "^3.6.7"
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.6",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
-    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.30.2",
     "playwright": "^1.62.1",
     "sharp": "^0.35.3",

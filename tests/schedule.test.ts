@@ -63,6 +63,61 @@ describe("reminder schedule", () => {
     assert.equal(slots.at(-1)!.dayLabel, "Montag");
   });
 
+  it("warns before a London kickoff, not after it", () => {
+    // Sunday 09:30 ET is 15:30 in Berlin — earlier than the 17:00 slot.
+    const london = new Date("2026-10-11T13:30:00Z");
+    const plan = planReminderSlots(
+      [
+        { id: "london", kickoff: london },
+        { id: "early", kickoff: new Date("2026-10-11T17:00:00Z") }, // 13:00 ET
+      ],
+      TZ,
+    );
+
+    const slot = plan.find((p) => p.gameIds.includes("london"))!;
+    assert.equal(slot.kind, "morning");
+    assert.equal(berlin(slot.at), "So., 11.10., 09:00");
+    assert.ok(slot.at < london, "the reminder lands before kickoff");
+    assert.deepEqual(slot.gameIds, ["london"], "and it does not drag the 19:00 games along");
+
+    const rest = plan.find((p) => p.gameIds.includes("early"))!;
+    assert.equal(berlin(rest.at), "So., 11.10., 17:00", "the ordinary slate is unmoved");
+  });
+
+  it("moves a holiday afternoon game off the 19:00 slot", () => {
+    // Christmas Day, 13:00 ET on a Friday — 19:00 in Berlin, the slot itself.
+    const xmas = new Date("2026-12-25T18:00:00Z");
+    const [slot] = planReminderSlots([{ id: "xmas", kickoff: xmas }], TZ);
+    assert.equal(berlin(slot!.at), "Fr., 25.12., 17:00", "two hours is better than twelve");
+    assert.ok(slot!.at < xmas);
+  });
+
+  it("warns the evening before a game with no announced time", () => {
+    // ESPN gives a flexed game midnight Eastern, which is 06:00 in Germany —
+    // every slot on the day itself would be the middle of the night.
+    const tbd = new Date("2026-12-27T05:00:00Z");
+    const [slot] = planReminderSlots([{ id: "tbd", kickoff: tbd }], TZ);
+    assert.equal(slot!.kind, "evening-before");
+    assert.equal(berlin(slot!.at), "Sa., 26.12., 19:00");
+    assert.ok(slot!.at < tbd);
+  });
+
+  it("uses the afternoon when the clocks put a late game on top of 21:00", () => {
+    // Late October: Europe is back on winter time while the US is not, so a
+    // 16:05 ET kickoff is 21:05 in Berlin — five minutes after the slot.
+    const squeezed = new Date("2026-10-25T20:05:00Z");
+    const [slot] = planReminderSlots([{ id: "late", kickoff: squeezed }], TZ);
+    assert.equal(berlin(slot!.at), "So., 25.10., 17:00");
+    assert.ok(slot!.at < squeezed);
+  });
+
+  it("keeps the Sunday night game on the 21:00 slot", () => {
+    // 22:25 kickoff leaves 85 minutes, which still counts as fair warning.
+    const [slot] = planReminderSlots([{ id: "late", kickoff: new Date("2026-09-27T20:25:00Z") }], TZ);
+    assert.equal(slot!.kind, "sunday-late");
+    assert.equal(berlin(slot!.at), "So., 27.09., 21:00");
+  });
+
   it("sends the recap the morning after the last game ends", () => {
     // Monday night kicks off 02:15 Tuesday Berlin and ends in the small hours.
     assert.equal(berlin(recapInstant(new Date("2026-09-29T00:15:00Z"), TZ)), "Di., 29.09., 07:00");

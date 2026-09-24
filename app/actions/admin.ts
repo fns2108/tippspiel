@@ -11,7 +11,7 @@ import { generateInviteCode } from "@/lib/invite";
 import { currentSeason, isValidOrdinal } from "@/lib/nfl/season";
 import { money, parseMoneyToCents } from "@/lib/payouts";
 import { savePoolSettings } from "@/lib/pool";
-import { sendTestReminder } from "@/lib/reminders";
+import { TEST_KINDS, sendTestReminder, type TestKind } from "@/lib/reminders";
 
 export type AdminState = { error: string | null; notice: string | null };
 
@@ -175,7 +175,7 @@ export async function savePayoutSettingsAction(
 /** Sends the signed-in admin a test notification, bypassing horizon and stamp. */
 export async function sendTestReminderAction(
   _prev: AdminState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<AdminState> {
   const admin = await requireAdmin();
 
@@ -185,9 +185,14 @@ export async function sendTestReminderAction(
    * renders no message at all and the button looks broken — which is exactly
    * how a broken notification setup used to present.
    */
+  const requested = String(formData.get("kind") ?? "plain");
+  const kind = (TEST_KINDS as readonly string[]).includes(requested)
+    ? (requested as TestKind)
+    : "plain";
+
   let report;
   try {
-    report = await sendTestReminder(admin.id);
+    report = await sendTestReminder(admin.id, kind);
   } catch (err) {
     console.error("[reminder-test]", err);
     return { error: `Unerwarteter Fehler: ${(err as Error).message}`, notice: null };
@@ -203,7 +208,14 @@ export async function sendTestReminderAction(
     };
   }
 
-  return { error: null, notice: "Test an dein ntfy-Topic geschickt." };
+  const what: Record<TestKind, string> = {
+    plain: "Test",
+    weekday: "Erinnerung (Wochentag)",
+    "sunday-early": "Erinnerung (Sonntag früh)",
+    "sunday-late": "Erinnerung (Sonntag spät)",
+    recap: "Wochenbild",
+  };
+  return { error: null, notice: `${what[kind]} an dein ntfy-Topic geschickt.` };
 }
 
 /** Every page that shows a points total. */

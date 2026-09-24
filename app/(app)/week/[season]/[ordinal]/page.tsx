@@ -81,7 +81,9 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
           {/* Games run down the page and members across it: vertical scroll is
               free on a phone, and one row reads as "who took this game". */}
           <div className="edge-fade -mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-            <table className="w-full min-w-max border-collapse text-sm">
+            {/* Not w-full: stretching would hand the spare width to the member
+                columns and they would stop being 100px each. */}
+            <table className="min-w-max border-collapse text-sm">
               <caption className="sr-only">
                 Die Picks aller Mitglieder für jedes Spiel in {view.ref.label}, mit den Punkten,
                 die darauf gesetzt sind. Picks erscheinen, sobald ein Spiel angepfiffen ist.
@@ -104,7 +106,7 @@ export default async function GridPage({ params }: { params: Promise<Params> }) 
                            is as wide as its widest cell, and nowrap text counts
                            its full length even when truncated. Pinning it here
                            is what makes every member column identical. */
-                        className={`mx-auto block w-[7rem] truncate text-center text-meta no-underline ${
+                        className={`mx-auto block w-[5.5rem] truncate text-center text-meta no-underline ${
                           m.id === user.id ? "font-semibold text-ink" : "text-n1 hover:text-ink"
                         }`}
                       >

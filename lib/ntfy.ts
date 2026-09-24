@@ -130,6 +130,14 @@ export function recapTitle(weekLabel: string): string {
 }
 
 /**
+ * The line under it.
+ *
+ * Short, but not empty: with no message of our own ntfy fills in its English
+ * "You received a file: …", which is worse than one plain German sentence.
+ */
+export const RECAP_MESSAGE = "Das Bild der Woche.";
+
+/**
  * Sends a file — the week's picture.
  *
  * Uploads go as a PUT with the bytes as the body, so the title and filename

@@ -2,7 +2,15 @@ import "server-only";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { games, picks, syncState, users } from "@/lib/db/schema";
-import { appUrl, ntfyServer, recapTitle, sendNtfy, sendNtfyFile, slotMessage } from "@/lib/ntfy";
+import {
+  RECAP_MESSAGE,
+  appUrl,
+  ntfyServer,
+  recapTitle,
+  sendNtfy,
+  sendNtfyFile,
+  slotMessage,
+} from "@/lib/ntfy";
 import { SERVER_TZ, formatTime } from "@/lib/format";
 import { planReminderSlots, recapInstant } from "@/lib/schedule";
 import { loadShareCard } from "@/lib/share-card";
@@ -166,6 +174,7 @@ async function sendWeekRecap(input: {
       bytes: png,
       filename: `tippspiel-woche-${ordinal}-${season}.png`,
       title,
+      message: RECAP_MESSAGE,
       ...(site ? { click: `${site}/share/${ordinal}` } : {}),
     });
 
@@ -181,15 +190,21 @@ export type TestReminderReport = {
   errors: string[];
 };
 
+/** The kinds of message the pool sends, so each can be checked on a real phone. */
+export const TEST_KINDS = ["plain", "weekday", "sunday-early", "sunday-late", "recap"] as const;
+export type TestKind = (typeof TEST_KINDS)[number];
+
 /**
- * Sends one notification to a single member, right now.
+ * Sends one message of a given kind to a single member, right now.
  *
- * Ignores both gates the real job depends on — the 48-hour horizon and the
- * once-a-day stamp — because those are what make the real job impossible to
- * test on demand. It writes no stamp, so a test never consumes the day's real
- * reminder.
+ * Ignores both gates the real job depends on — the time of day and the
+ * once-per-slot stamp — because those are what make it impossible to check on
+ * demand. Nothing is stamped, so a test never consumes a real reminder.
  */
-export async function sendTestReminder(userId: string): Promise<TestReminderReport> {
+export async function sendTestReminder(
+  userId: string,
+  kind: TestKind = "plain",
+): Promise<TestReminderReport> {
   const report: TestReminderReport = { configured: true, reason: null, sent: 0, errors: [] };
 
   const [row] = await db
@@ -204,17 +219,54 @@ export async function sendTestReminder(userId: string): Promise<TestReminderRepo
     return report;
   }
 
-  const result = await sendNtfy({
-    topic: row.topic,
-    title: "Test",
-    message: "Erinnerungen funktionieren. Das war ein Test.",
-    tags: ["white_check_mark"],
-    ...(process.env.APP_URL ? { click: `${process.env.APP_URL.replace(/\/+$/, "")}/picks` } : {}),
-  });
+  const topic = row.topic;
+  const site = appUrl();
+  const season = currentSeason();
+  const ordinal = (await getCurrentWeekOrdinal(season)) ?? 1;
 
+  if (kind === "recap") {
+    const card = await loadShareCard(season, ordinal);
+    const png = Buffer.from(await renderShareCard(card, await loadFonts()).arrayBuffer());
+    const result = await sendNtfyFile({
+      topic,
+      bytes: png,
+      filename: `tippspiel-woche-${ordinal}-${season}.png`,
+      title: recapTitle(card.ref.label),
+      message: RECAP_MESSAGE,
+      ...(site ? { click: `${site}/share/${ordinal}` } : {}),
+    });
+    if (result.ok) report.sent++;
+    else report.errors.push(result.error);
+    return report;
+  }
+
+  if (kind === "plain") {
+    const result = await sendNtfy({
+      topic,
+      title: "Test",
+      message: "Erinnerungen funktionieren",
+      ...(site ? { click: `${site}/picks` } : {}),
+    });
+    if (result.ok) report.sent++;
+    else report.errors.push(result.error);
+    return report;
+  }
+
+  // A reminder, with real fixtures from the current week where there are any.
+  const weekGames = await getWeekGames(season, ordinal);
+  const sample = weekGames
+    .slice(0, kind === "sunday-early" ? 4 : 2)
+    .map((g) => `${g.away.abbrev} ${g.neutralSite ? "vs" : "@"} ${g.home.abbrev}`);
+
+  const result = await sendNtfy(
+    slotMessage({
+      topic,
+      games: sample.length > 0 ? sample : ["KC @ BUF", "PHI @ DAL"],
+      appUrl: site,
+    }),
+  );
   if (result.ok) report.sent++;
   else report.errors.push(result.error);
-
   return report;
 }
 

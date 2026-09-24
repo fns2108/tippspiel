@@ -269,8 +269,8 @@ export default async function AdminPage() {
         </p>
 
         <p className="max-w-[62ch] text-meta text-n2">
-          Der Test geht nur an dich, ignoriert das Zeitfenster und die Einmal-pro-Tag-Sperre,
-          und verbraucht die echte Erinnerung des Tages nicht.
+          Alle Nachrichtenarten zum Ausprobieren. Sie gehen nur an dich, ignorieren das
+          Zeitfenster und die Einmal-pro-Slot-Sperre, und verbrauchen keine echte Erinnerung.
         </p>
         <ReminderTest />
       </section>
